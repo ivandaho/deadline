@@ -1,6 +1,8 @@
 import datetime
+from datetime import date
 import calendar
-#import tkinter as tk
+import tkinter as tk
+from tkinter import BOTH, END
 import MySQLdb
 
 class Database:
@@ -102,13 +104,44 @@ def initdbclass():
     db.query(q)
     db.connection.commit()
 
+def tf():
+    print("button pressed, tf() invoked")
+
+def dofotm(): # day of first of this month
+# populates today's month
+    return date(datetime.datetime.today().year, datetime.datetime.today().month, 1).weekday()
+def ditm(): # days in this month
+    return calendar.monthrange(datetime.datetime.today().year, datetime.datetime.today().month)[1]
+
+def calpop():
+# populates a grid with the days of the month in a button format
+    gridindex = dofotm() + 1
+    currday = 1
+    daywidth = 32 # 32 pixels width
+    calwidth = daywidth * 7 # 7 days in a week
+    #calheight = daywidth * 5 # max 5 weeks in a month?
+    
+    calwidth = 2 # temp calwidth, 2 is width based on characters
+    for x in range(0, 5):
+        for y in range(0, 7):
+            y = gridindex
+            btn1 = tk.Button(root, width=calwidth, text=currday, command=tf)
+            btn1.grid(row=x, column=y)
+            if (currday == ditm()):
+                break
+            currday = currday + 1
+            gridindex = gridindex + 1
+            if (gridindex == 7):
+                gridindex = 0
+                break
+    
+
 def refreshjoblist():
     q="""
     SELECT * from wt;
     """
     dbdata = db.query(q)
 
-    joblist = []
     for item in dbdata:
         # parse doby from db into python datetime format
         datetimestr = str(item['doby'])
@@ -128,6 +161,7 @@ if __name__ == "__main__":
     db = Database() # custom database class (mysql)
 
     initdbclass()
+    joblist = []
     refreshjoblist()
 
     c = calendar
@@ -138,12 +172,23 @@ if __name__ == "__main__":
 
     ################
     # tkinter stuff
-    # root = tk.Tk()
-    # root.title("cal")
+    root = tk.Tk()
+    root.title("tkinter window")
+    test1 = tk.Label(root, text = "thistext")
 
-    # str1 = c.prmonth(year, month)
-    # label1 = tk.Label(root, text=str1, font=('courier', 14, 'bold'), bg='yellow')
-    # label1.pack(padx=3, pady=5)
-    ################
-    # root.mainloop()
+#    f = tk.Frame(root, height=32, width=32)
+#    f.pack_propagate(0)
+#    f.pack()
 
+#    btn1 = tk.Button(f, text = "a button", command=tf)
+#    btn1.pack(fill=BOTH, expand=1)
+
+    joblistbox = tk.Listbox(root, width=35, height=5)
+    for item in joblist:
+        joblistbox.insert(END, item.name)
+
+    joblistbox.grid(row=5, columnspan=7) # figure this out
+
+    calpop()
+
+    root.mainloop()
