@@ -108,21 +108,30 @@ def tf():
     print("button pressed, tf() invoked")
 
 def dofotm(): # day of first of this month
-# populates today's month
     return date(datetime.datetime.today().year, datetime.datetime.today().month, 1).weekday()
+
+def dofotm_specific(y, m): # day of first of a specific month
+    return date(y, m, 1).weekday()
+
 def ditm(): # days in this month
     return calendar.monthrange(datetime.datetime.today().year, datetime.datetime.today().month)[1]
+
+def ditm_specific(y, m): # days in this month
+    return calendar.monthrange(y, m)[1]
 
 def calpop():
 # populates a grid with the days of the month in a button format
     gridindex = dofotm() + 1
+    print("gridindex = " + str(gridindex))
     currday = 1
     daywidth = 32 # 32 pixels width
     calwidth = daywidth * 7 # 7 days in a week
     #calheight = daywidth * 5 # max 5 weeks in a month?
     
     calwidth = 2 # temp calwidth, 2 is width based on characters
-    for x in range(0, 5):
+    for x in range(0, 9):
+        if (currday == ditm()):
+            break
         for y in range(0, 7):
             y = gridindex
             btn1 = tk.Button(root, width=calwidth, text=currday, command=tf)
