@@ -5,6 +5,8 @@ import tkinter as tk
 from tkinter import BOTH, END
 import MySQLdb
 
+dodwj = {} #dictionary of days with jobs
+
 class Database:
 
     host    = "localhost"
@@ -89,6 +91,11 @@ def initdbclass():
     db.query(q)
 
     q = """
+    INSERT INTO wt VALUES('something new on same date','8400', STR_TO_DATE('2016/01/27 23:46:43', '%Y/%m/%d %T'), NULL);
+    """
+    db.query(q)
+
+    q = """
     INSERT INTO wt VALUES('database project','0', STR_TO_DATE('2016/01/30 08:00:00', '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
@@ -104,8 +111,6 @@ def initdbclass():
     db.query(q)
     db.connection.commit()
 
-def tf():
-    print("button pressed, tf() invoked")
 
 def dofotm(): # day of first of this month
     return date(datetime.datetime.today().year, datetime.datetime.today().month, 1).weekday()
@@ -119,22 +124,28 @@ def ditm(): # days in this month
 def ditm_specific(y, m): # days in this month
     return calendar.monthrange(y, m)[1]
 
+def tf(arg):
+    print("button pressed, tf(" + str(arg) + ") invoked")
+    print(dodwj[arg])
+
 def calpop():
 # populates a grid with the days of the month in a button format
     gridindex = dofotm() + 1
-    print("gridindex = " + str(gridindex))
     currday = 1
     daywidth = 32 # 32 pixels width
     calwidth = daywidth * 7 # 7 days in a week
     #calheight = daywidth * 5 # max 5 weeks in a month?
+
     
     calwidth = 2 # temp calwidth, 2 is width based on characters
-    for x in range(0, 9):
+    for x in range(0, 9): # will just break after done? max=99 is ok?
         if (currday == ditm()):
             break
         for y in range(0, 7):
             y = gridindex
-            btn1 = tk.Button(root, width=calwidth, text=currday, command=tf)
+            mnth = datetime.datetime.today().month
+            binddate = datetime.date(2016, mnth, currday)
+            btn1 = tk.Button(root, width=calwidth, text=currday, command=lambda j=binddate: tf(j))
             btn1.grid(row=x, column=y)
             if (currday == ditm()):
                 break
@@ -162,15 +173,49 @@ def refreshjoblist():
         secondstr = int(datetimestr[17:19])
         joblist.append(Job(item['name'], yearstr, monthstr, daystr, hourstr, minutestr, secondstr))
 
+    matches = 0
+
+    for item in joblist:
+        if (item.doBy.date() in doBylist):
+            matches = matches + 1
+        else:
+            doBylist.append(item.doBy.date())
+    
+    
+    newlist = [x for x in doBylist if x == joblist[0].doBy.date()]
+    print("sdf " + str(newlist)) # newlist contains unique dates?
+    thisnewx = 0
+    global dodwj
+    for item in joblist:
+        if(item.doBy.date() in dodwj):
+            thisnewx = thisnewx + 1
+            dodwj[item.doBy.date()] = thisnewx # dict can override
+        else:
+            dodwj[item.doBy.date()] = thisnewx # dict can override
+        thisnewx = 1
+    print("printing dodwj:")
+    print(dodwj)
+    # - get the dates from doBylist (this contains unique dates)
+    # - traverse list of jobs. create new array for first occurence of
+    #   a date. add job to that date. for other jobs on that date, add 
+    #   them to the created array
+
+    # - when populating cal, change color when there is event
+    # 
+
+    print("#########################")
     print("refreshed job DB. items: ")
+    print("#########################")
     for item in joblist:
         print(item)
+
 
 if __name__ == "__main__":
     db = Database() # custom database class (mysql)
 
     initdbclass()
     joblist = []
+    doBylist = []
     refreshjoblist()
 
     c = calendar
