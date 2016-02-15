@@ -5,7 +5,10 @@ import tkinter as tk
 from tkinter import BOTH, END
 import MySQLdb
 
-dodwj = {} #dictionary of days with jobs
+from collections import defaultdict
+
+# dodwj = {} #dictionary of days with jobs
+dodwj = defaultdict(dict)
 
 class Database:
 
@@ -43,7 +46,7 @@ class Database:
         pass
 
 class Job:
-    def __init__(self, name, year, month, day, hour, minute, second):
+    def __init__(self, name, year, month, day, hour, minute, second, job_id):
         self.name = name
         self.timeReq = 3600  # in seconds, defaults to 1h
 #       doBy is the date of occurence
@@ -51,6 +54,7 @@ class Job:
 #                                     year  m  d   h   m   s   mics  tz
         self.doBy = datetime.datetime(year, month, day, hour, minute, second, 0, None)
         # self.doBy = datetime.datetime(2016, 1, 27, 20, 46, 43, 0, None)
+        self.job_id = job_id
 
 #   time left (calculated from current time)
     def timeLeft(self):
@@ -86,17 +90,17 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('laundry','7200', STR_TO_DATE('2016/01/27 20:46:43', '%Y/%m/%d %T'), NULL);
+    INSERT INTO wt VALUES('laundry','7200', STR_TO_DATE('2016/02/20 20:46:43', '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('something new on same date','8400', STR_TO_DATE('2016/01/27 23:46:43', '%Y/%m/%d %T'), NULL);
+    INSERT INTO wt VALUES('something new on same date','8400', STR_TO_DATE('2016/02/27 23:46:43', '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('database project','0', STR_TO_DATE('2016/01/30 08:00:00', '%Y/%m/%d %T'), NULL);
+    INSERT INTO wt VALUES('database project','0', STR_TO_DATE('2016/02/15 08:00:00', '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
@@ -106,7 +110,7 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('csc club meeting','3600', STR_TO_DATE('2016/02/06 11:00:00', '%Y/%m/%d %T'), NULL);
+    INSERT INTO wt VALUES('csc club meeting','3600', STR_TO_DATE('2016/02/08 11:00:00', '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
     db.connection.commit()
@@ -126,7 +130,10 @@ def ditm_specific(y, m): # days in this month
 
 def tf(arg):
     print("button pressed, tf(" + str(arg) + ") invoked")
-    print(dodwj[arg])
+    joblistbox.delete(0, END)
+    for item in dodwj[arg]:
+        joblistbox.insert(END, dodwj[arg][item])
+    #print(dodwj[arg])
 
 def calpop():
 # populates a grid with the days of the month in a button format
@@ -171,9 +178,9 @@ def refreshjoblist():
         hourstr = int(datetimestr[11:13])
         minutestr = int(datetimestr[14:16])
         secondstr = int(datetimestr[17:19])
-        joblist.append(Job(item['name'], yearstr, monthstr, daystr, hourstr, minutestr, secondstr))
+        joblist.append(Job(item['name'], yearstr, monthstr, daystr, hourstr, minutestr, secondstr, item['job_id']))
 
-    matches = 0
+    matches = 0 # dont even need this anymore
 
     for item in joblist:
         if (item.doBy.date() in doBylist):
@@ -184,15 +191,15 @@ def refreshjoblist():
     
     newlist = [x for x in doBylist if x == joblist[0].doBy.date()]
     print("sdf " + str(newlist)) # newlist contains unique dates?
-    thisnewx = 0
+    i = 1
     global dodwj
     for item in joblist:
         if(item.doBy.date() in dodwj):
-            thisnewx = thisnewx + 1
-            dodwj[item.doBy.date()] = thisnewx # dict can override
+            i = i + 1
+            dodwj[item.doBy.date()][i] = item.name # dict can override
         else:
-            dodwj[item.doBy.date()] = thisnewx # dict can override
-        thisnewx = 1
+            dodwj[item.doBy.date()][i] = item.name # dict can override
+        i = 1
     print("printing dodwj:")
     print(dodwj)
     # - get the dates from doBylist (this contains unique dates)
@@ -239,7 +246,7 @@ if __name__ == "__main__":
 
     joblistbox = tk.Listbox(root, width=35, height=5)
     for item in joblist:
-        joblistbox.insert(END, item.name)
+        joblistbox.insert(END, item.name) # insert in listbox
 
     joblistbox.grid(row=5, columnspan=7) # figure this out
 
