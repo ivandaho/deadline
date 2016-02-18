@@ -2,10 +2,62 @@ import datetime
 from datetime import date
 import calendar
 import tkinter as tk
-from tkinter import BOTH, END
+# from tkinter import BOTH, END
 import MySQLdb
 
 from collections import defaultdict
+
+# kivy stuff
+from kivy.app import App
+from kivy.uix.widget import Widget
+from kivy.graphics import *
+from kivy.uix.button import Button
+from kivy.uix.gridlayout import GridLayout
+from kivy.properties import ObjectProperty
+import sys
+
+class CalGame(Widget): # main class
+    def on_touch_down(self,touch):
+        pass
+
+class EW(Widget): # empty widget class
+    pass
+
+class DayBtn(Button): # day button class
+    input = ObjectProperty()
+    def on_release(self):
+        ntf(self.input)
+
+class CalApp(App):
+    def kivycalpop(self,wid):
+        # this method works i think
+        #with wid.canvas:
+        #    Color(1,0,0, mode='rgb')
+        #    Rectangle(size=(50,50),pos=(50,50))
+
+        # same draw method, just in kivy instead of tkinter
+        gridindex = dofotm() + 1
+        currday = 1
+        y = 0
+        mnth = datetime.datetime.today().month
+
+        while (currday <= ditm()):
+            binddate = datetime.date(2016, mnth, currday)
+            if (y < gridindex):
+                # add empty widgets to fill grid
+                ew = EW()
+                wid.add_widget(ew)
+                y = y + 1
+            else:
+                wid.add_widget(DayBtn(text=str(currday),input=binddate))
+                currday = currday + 1
+
+
+    def build(self):
+        main = CalGame()
+        main = GridLayout(cols=7)
+        self.kivycalpop(main)
+        return main
 
 # dodwj = {} #dictionary of days with jobs
 dodwj = defaultdict(dict)
@@ -128,6 +180,11 @@ def ditm(): # days in this month
 def ditm_specific(y, m): # days in this month
     return calendar.monthrange(y, m)[1]
 
+def ntf(arg): # new test function
+    print("button pressed, ntf(" + str(arg) + ") invoked")
+    for item in dodwj[arg]:
+        print(dodwj[arg][item])
+
 def tf(arg):
     print("button pressed, tf(" + str(arg) + ") invoked")
     joblistbox.delete(0, END)
@@ -231,6 +288,8 @@ if __name__ == "__main__":
 
     #db.additem('wt', 'newdbitem', '3600')
 
+    CalApp().run()
+    sys.exit()
     ################
     # tkinter stuff
     root = tk.Tk()
