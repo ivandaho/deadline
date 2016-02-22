@@ -41,9 +41,15 @@ class CalGame(GridLayout): # main class
     def makemarks(self):
         for child in self.children:
             # if event(s) found on this daybtn
-            for element in dodwj[child.input]:
-                # add intsructon for each event
-                child.drawnew()
+            # child is DayBtn
+            # contains datetime.datetime
+            for event in dodwj[child.input]:
+                # event is i number, doesnt contain job data
+                # job data is in dodwj[child.input][event]
+
+                # add instructon for each event
+                child.drawnew(dodwj[child.input][event])
+
         self.canvas.add(ig1)
 
 class EW(Widget): # empty widget class
@@ -51,7 +57,7 @@ class EW(Widget): # empty widget class
     # TODO: dummy var and method to be consistent with DayBtn class
     input = ObjectProperty
 
-    def drawnew(self):
+    def drawnew(self,job):
         pass
 
 class DayBtn(Button): # day button class
@@ -65,12 +71,22 @@ class DayBtn(Button): # day button class
     def on_release(self):
         ntf(self.input)
 
-    def drawnew(self):
+    def drawnew(self,job):
+        # TODO: pass into function better, maybe dont need job
+        #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
         ig1.add(Color(1,1,0,0.5))
         ig1.add(Rectangle(size=(self.width-40,\
-                                self.height-40 ),\
+                                self.height-40),\
                            pos=(self.x+20,\
+                                self.y+20)))
+        # calculate timereq indicator stuff...
+        secwidth = Window.width/7./180000.
+        #timeReq width
+        trw = job.timeReq*secwidth
+        ig1.add(Rectangle(size=(trw+20,\
+                                self.height-80),\
+                           pos=(self.x-trw,\
                                 self.y+20)))
 
 class CalApp(App):
@@ -128,9 +144,9 @@ class Database:
         pass
 
 class Job:
-    def __init__(self, name, year, month, day, hour, minute, second, job_id):
+    def __init__(self, name, year, month, day, hour, minute, second, timereq, job_id):
         self.name = name
-        self.timeReq = 3600  # in seconds, defaults to 1h
+        self.timeReq = timereq
 #       doBy is the date of occurence
 #       
 #                                     year  m  d   h   m   s   mics  tz
@@ -154,15 +170,16 @@ class Job:
         if (self.name == ''):
             self.name == 'Unspecified'
 
-        self.outstr = self.name + " "
+        self.outstr = self.name + " doBy="
         self.outstr += str(self.doBy.year) + "-"
         self.outstr += str(self.doBy.month) + "-"
         self.outstr += str(self.doBy.day) + " "
         self.outstr += str(self.doBy.hour) + ":"
         self.outstr += str(self.doBy.minute) + ":"
-        self.outstr += str(self.doBy.second) + ":"
-        self.outstr += str(self.doBy.microsecond) + " "
-        self.outstr += str(self.doBy.tzinfo)
+        self.outstr += str(self.doBy.second) + " timeReq="
+        #self.outstr += str(self.doBy.microsecond) + " "
+        #self.outstr += str(self.doBy.tzinfo)
+        self.outstr += str(self.timeReq)
 
         return self.outstr
 
@@ -172,7 +189,7 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('laundry','7200', STR_TO_DATE('2016/02/20 20:46:43', '%Y/%m/%d %T'), NULL);
+    INSERT INTO wt VALUES('laundry','180000', STR_TO_DATE('2016/02/20 20:46:43', '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
@@ -192,7 +209,7 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('csc club meeting','3600', STR_TO_DATE('2016/02/08 11:00:00', '%Y/%m/%d %T'), NULL);
+    INSERT INTO wt VALUES('csc club meeting','180000', STR_TO_DATE('2016/02/08 11:00:00', '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
     db.connection.commit()
@@ -265,7 +282,8 @@ def refreshjoblist():
         hourstr = int(datetimestr[11:13])
         minutestr = int(datetimestr[14:16])
         secondstr = int(datetimestr[17:19])
-        joblist.append(Job(item['name'], yearstr, monthstr, daystr, hourstr, minutestr, secondstr, item['job_id']))
+        timereq = item['timereq']
+        joblist.append(Job(item['name'], yearstr, monthstr, daystr, hourstr, minutestr, secondstr, timereq, item['job_id']))
 
     matches = 0 # dont even need this anymore
 
@@ -283,12 +301,17 @@ def refreshjoblist():
     for item in joblist:
         if(item.doBy.date() in dodwj):
             i = i + 1
-            dodwj[item.doBy.date()][i] = item.name # dict can override
+            dodwj[item.doBy.date()][i] = item # dict can override
         else:
-            dodwj[item.doBy.date()][i] = item.name # dict can override
+            dodwj[item.doBy.date()][i] = item # dict can override
         i = 1
     print("printing dodwj:")
-    print(dodwj)
+
+    # to access list of jobs by date... # TIP
+    #for item in dodwj:
+    #    for jobitem in dodwj[item]:
+    #            #print(dodwj[item][jobitem])
+
     # - get the dates from doBylist (this contains unique dates)
     # - traverse list of jobs. create new array for first occurence of
     #   a date. add job to that date. for other jobs on that date, add 
