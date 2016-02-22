@@ -1,4 +1,3 @@
-import datetime
 from datetime import date
 import calendar
 import tkinter as tk
@@ -16,25 +15,11 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.properties import ObjectProperty
 import sys
 
-class CalGame(Widget): # main class
-    def on_touch_down(self,touch):
-        pass
+from kivy.core.window import Window
+from kivy.clock import Clock
 
-class EW(Widget): # empty widget class
-    pass
-
-class DayBtn(Button): # day button class
-    input = ObjectProperty()
-    def on_release(self):
-        ntf(self.input)
-
-class CalApp(App):
-    def kivycalpop(self,wid):
-        # this method works i think
-        #with wid.canvas:
-        #    Color(1,0,0, mode='rgb')
-        #    Rectangle(size=(50,50),pos=(50,50))
-
+class CalGame(GridLayout): # main class
+    def kivycalpop(self):
         # same draw method, just in kivy instead of tkinter
         gridindex = dofotm() + 1
         currday = 1
@@ -46,21 +31,65 @@ class CalApp(App):
             if (y < gridindex):
                 # add empty widgets to fill grid
                 ew = EW()
-                wid.add_widget(ew)
+                self.add_widget(ew)
                 y = y + 1
             else:
-                wid.add_widget(DayBtn(text=str(currday),input=binddate))
+                self.add_widget(DayBtn(text=str(currday),input=binddate))
                 currday = currday + 1
 
+    def makemarks(self):
+        for child in self.children:
+            # if event(s) found on this daybtn
+            for element in dodwj[child.input]:
+                # add intsructon for each event
+                child.drawnew()
+        self.canvas.add(ig1)
+
+class EW(Widget): # empty widget class
+
+    # TODO: dummy var and method to be consistent with DayBtn class
+    input = ObjectProperty
+
+    def drawnew(self):
+        pass
+
+class DayBtn(Button): # day button class
+    input = ObjectProperty()
+    background_color = (1,1,1,1)
+    text_size = (100,100)
+    halign = 'right'
+    valign = 'top'
+    font_size = 32
+
+    def on_release(self):
+        ntf(self.input)
+
+    def drawnew(self):
+        # doesnt actually draw but only add instrucions.
+        ig1.add(Color(1,1,0,0.5))
+        ig1.add(Rectangle(size=(self.width-40,\
+                                self.height-40 ),\
+                           pos=(self.x+20,\
+                                self.y+20)))
+
+class CalApp(App):
+
+    def delayed(self, dt):
+        self.root.makemarks()
 
     def build(self):
-        main = CalGame()
-        main = GridLayout(cols=7)
-        self.kivycalpop(main)
+        main = CalGame(cols=7)
+
+        with main.canvas:
+            Rectangle(pos=main.pos, size=Window.size)
+
+        main.kivycalpop()
+        Clock.schedule_once(self.delayed, 0.5) #TODO refine delay
         return main
 
 # dodwj = {} #dictionary of days with jobs
 dodwj = defaultdict(dict)
+ig1 = InstructionGroup()
 
 class Database:
 
@@ -272,7 +301,6 @@ def refreshjoblist():
     print("#########################")
     for item in joblist:
         print(item)
-
 
 if __name__ == "__main__":
     db = Database() # custom database class (mysql)
