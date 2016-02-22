@@ -88,9 +88,54 @@ class DayBtn(Button):  # day button class
         secwidth = Window.width/7./180000.
         # timeReq width
         trw = job.timeReq*secwidth
-        ig1.add(Rectangle(size=(trw+20,
+
+        # 0 is sunday, 6 is saturday
+        dayindex = job.doBy.weekday() + 1
+        if (dayindex == 7):
+            dayindex = 0
+
+        # max possible bar width, based on day of the week
+        maxtrw = Window.width / 7 * dayindex
+
+        fillx = 20
+
+        fullbars = 0
+        topbar = 0
+        iteration = 3
+        btmbar = 0
+
+        if (trw >= maxtrw):
+            # if can't fit
+            btmbar = maxtrw
+            remaining = trw - maxtrw  # width of remaining trw
+            fullbars = int(remaining/Window.width)  # number of full bars
+            topbar = remaining - fullbars*Window.width   # width of top bar
+
+            iteration = fullbars + 1    # number of full bars + top bar
+            # this is if can't fit.
+            # handle btmbar later
+
+            for x in range(1, iteration+1):
+                if (x == iteration):
+                    # dont draw full bars. draw last(top) bar.
+                    ig1.add(Color(1, 1, 0, 0.2))
+                    ig1.add(Rectangle(size=(topbar,
+                                            self.height-80),
+                                      pos=(Window.width-topbar,
+                                           self.y+20+Window.height/5.*x)))
+                else:
+                    # draw full bars
+                    ig1.add(Color(1, 1, 0, 0.2))
+                    ig1.add(Rectangle(size=(Window.width,
+                                            self.height-80),
+                                      pos=(0,
+                                           self.y+20+Window.height/5.*x)))
+
+        btmbar = trw
+        ig1.add(Color(1, 1, 0, 0.2))
+        ig1.add(Rectangle(size=(btmbar+fillx,
                                 self.height-80),
-                          pos=(self.x-trw,
+                          pos=(self.x-btmbar,
                                self.y+20)))
 
 
@@ -206,7 +251,7 @@ def initdbclass():
 
     q = """
     INSERT INTO wt VALUES('laundry','180000',
-                          STR_TO_DATE('2016/02/20 20:46:43',
+                          STR_TO_DATE('2016/02/18 20:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
@@ -219,13 +264,6 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('database project','0',
-                          STR_TO_DATE('2016/02/15 08:00:00',
-                                      '%Y/%m/%d %T'), NULL);
-    """
-    db.query(q)
-
-    q = """
     INSERT INTO wt VALUES('paper','18000',
                           STR_TO_DATE('2016/02/08 14:00:00',
                                       '%Y/%m/%d %T'), NULL);
@@ -233,8 +271,15 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('csc club meeting','180000',
+    INSERT INTO wt VALUES('csc club meeting','720000',
                           STR_TO_DATE('2016/02/08 11:00:00',
+                                      '%Y/%m/%d %T'), NULL);
+    """
+    db.query(q)
+
+    q = """
+    INSERT INTO wt VALUES('database project','2160000',
+                          STR_TO_DATE('2016/02/29 08:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
