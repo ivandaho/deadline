@@ -4,7 +4,7 @@ import calendar
 import tkinter as tk
 from tkinter import END
 # from tkinter import BOTH
-import MySQLdb
+import mysql.connector
 
 from collections import defaultdict
 
@@ -167,19 +167,18 @@ class Database:
     db = "test"
 
     def __init__(self):
-        self.connection = MySQLdb.connect(host=self.host,
-                                          user=self.user,
-                                          passwd=self.passwd,
-                                          db=self.db)
+        self.cnx = mysql.connector.connect(host=self.host,
+                                           user=self.user,
+                                           passwd=self.passwd,
+                                           db=self.db)
 
     def query(self, q):
-        cursor = self.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = self.cnx.cursor()
         cursor.execute(q)
-
-        return cursor.fetchall()
+        return cursor.fetchmany(size=999999)  # fetchall doesnt work??
 
     def __del__(self):
-        self.connection.close()
+        self.cnx.close()
 
     def additem(self, table, name, time):
         time = str(time)
@@ -197,15 +196,13 @@ class Database:
 
 class Job:
     def __init__(self, name,
-                 year, month, day, hour, minute, second,
+                 datetime,
                  timereq, job_id):
         self.name = name
         self.timeReq = timereq
 #       doBy is the date of occurence
 #                                     year  m  d   h   m   s   mics  tz
-        self.doBy = datetime.datetime(year, month, day,
-                                      hour, minute, second,
-                                      0, None)
+        self.doBy = datetime
         # self.doBy = datetime.datetime(2016, 1, 27, 20, 46, 43, 0, None)
         self.job_id = job_id
 
@@ -283,7 +280,7 @@ def initdbclass():
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
-    db.connection.commit()
+    db.cnx.commit()
 
 
 def dofotm():  # day of first of this month
@@ -353,18 +350,8 @@ def refreshjoblist():
     dbdata = db.query(q)
 
     for item in dbdata:
-        # parse doby from db into python datetime format
-        datetimestr = str(item['doby'])
-        yearstr = int(datetimestr[0:4])
-        monthstr = int(datetimestr[5:7])
-        daystr = int(datetimestr[8:10])
-        hourstr = int(datetimestr[11:13])
-        minutestr = int(datetimestr[14:16])
-        secondstr = int(datetimestr[17:19])
-        timereq = item['timereq']
-        joblist.append(Job(item['name'], yearstr, monthstr, daystr,
-                       hourstr, minutestr, secondstr,
-                       timereq, item['job_id']))
+        joblist.append(Job(item[0], item[2],
+                       item[1], item[3]))
 
     matches = 0  # dont even need this anymore
 
