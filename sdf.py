@@ -11,7 +11,7 @@ from collections import defaultdict
 # kivy stuff
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.graphics import InstructionGroup, Rectangle, Color
+from kivy.graphics import InstructionGroup, Rectangle, Color, RoundedRectangle
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.properties import ObjectProperty
@@ -19,6 +19,11 @@ import sys
 
 from kivy.core.window import Window
 from kivy.clock import Clock
+
+from ics import Calendar# , Event
+import arrow
+import os
+
 
 
 class CalGame(GridLayout):  # main class
@@ -80,12 +85,13 @@ class DayBtn(Button):  # day button class
         #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
         ig1.add(Color(1, 1, 0, 0.5))
-        ig1.add(Rectangle(size=(self.width-40,
+        ig1.add(RoundedRectangle(size=(self.width-40,
                                 self.height-40),
                           pos=(self.x+20,
-                               self.y+20)))
+                               self.y+20),
+                          radius=(15,15)))
         # calculate timereq indicator stuff...
-        secwidth = Window.width/7./180000.
+        secwidth = Window.width/7./180000.  # pixels per second
         # timeReq width
         trw = job.timeReq*secwidth
 
@@ -97,7 +103,7 @@ class DayBtn(Button):  # day button class
         # max possible bar width, based on day of the week
         maxtrw = Window.width / 7 * dayindex
 
-        fillx = 20
+        fillx = self.width/2  # fills out the bar 
 
         fullbars = 0
         topbar = 0
@@ -133,10 +139,14 @@ class DayBtn(Button):  # day button class
 
         btmbar = trw
         ig1.add(Color(1, 1, 0, 0.2))
-        ig1.add(Rectangle(size=(btmbar+fillx,
-                                self.height-80),
-                          pos=(self.x-btmbar,
-                               self.y+20)))
+
+        if (job.timeReq > 0):  # if job is an event
+            # TODO: timeReq can be used for events? change this to
+            #       use a var like jobType or something
+            ig1.add(Rectangle(size=(btmbar+fillx,
+                                    self.height-80),
+                              pos=(self.x-btmbar,
+                                   self.y+20)))
 
 
 class CalApp(App):
@@ -151,7 +161,7 @@ class CalApp(App):
             Rectangle(pos=main.pos, size=Window.size)
 
         main.kivycalpop()
-        Clock.schedule_once(self.delayed, 0.5)  # TODO: refine delay
+        Clock.schedule_once(self.delayed, 1)  # TODO: refine delay
         return main
 
 # dodwj = {} #dictionary of days with jobs
@@ -280,7 +290,28 @@ def initdbclass():
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
+    icstosql()
     db.cnx.commit()
+
+def icstosql():
+    # adds events after 1/1/2016 from ics file, if exists, to sql db
+    # i use my personal calendar to populate so it's not uploaded here
+    if (os.path.isfile('./cal.ics')):
+        print('file found')
+        with open('./cal.ics') as f:
+            cal = Calendar(imports=f)
+
+        startdate = arrow.get(datetime.datetime(2016, 1, 1, 0, 0))
+        for event in cal.events:
+            if (event.begin > startdate):
+                inserticsevent(event)
+
+
+def inserticsevent(event):
+    datestr = event.begin.format('YYYY/MM/DD HH:mm:ss')
+    print(datestr)
+    q = 'INSERT INTO wt VALUES(\'' + str(event.name) + '\',\'0\',' + 'STR_TO_DATE(\'' + datestr + '\', \'%Y/%m/%d %T\'), NULL);'
+    db.query(q)
 
 
 def dofotm():  # day of first of this month
