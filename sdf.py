@@ -29,6 +29,7 @@ import os
 class CalGame(GridLayout):  # main class
     def kivycalpop(self):
         # same draw method, just in kivy instead of tkinter
+        # this is for the buttons only. makemarks handles other gfx
         gridindex = dofotm() + 1
         currday = 1
         y = 0
@@ -49,7 +50,7 @@ class CalGame(GridLayout):  # main class
         for child in self.children:
             # if event(s) found on this daybtn
             # child is DayBtn
-            # contains datetime.datetime
+            # contains datetime.datetime in input
             for event in dodwj[child.input]:
                 # event is i number, doesnt contain job data
                 # job data is in dodwj[child.input][event]
@@ -91,7 +92,7 @@ class DayBtn(Button):  # day button class
                                self.y+20),
                           radius=(15,15)))
         # calculate timereq indicator stuff...
-        secwidth = Window.width/7./180000.  # pixels per second
+        secwidth = Window.width/7./86400.  # pixels per second
         # timeReq width
         trw = job.timeReq*secwidth
 
@@ -209,14 +210,15 @@ class Job:
                  datetime,
                  timereq, job_id):
         self.name = name
-        self.timeReq = timereq
-#       doBy is the date of occurence
-#                                     year  m  d   h   m   s   mics  tz
+        self.timeReq = timereq # timeReq is time required in SECONDS
+        
+        # doBy is the date of occurence
+        #                             year  m  d   h   m   s   mics  tz
         self.doBy = datetime
         # self.doBy = datetime.datetime(2016, 1, 27, 20, 46, 43, 0, None)
         self.job_id = job_id
 
-#   time left (calculated from current time)
+    # time left (calculated from current time)
     def timeLeft(self):
 
         self.timeUntil = self.doBy - datetime.datetime.today()
@@ -257,35 +259,35 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('laundry','180000',
+    INSERT INTO wt VALUES('laundry','86400',
                           STR_TO_DATE('2016/02/18 20:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('something new on same date','8400',
+    INSERT INTO wt VALUES('something new on same date','1',
                           STR_TO_DATE('2016/02/27 23:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('paper','18000',
+    INSERT INTO wt VALUES('paper','172800',
                           STR_TO_DATE('2016/02/08 14:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('csc club meeting','720000',
+    INSERT INTO wt VALUES('csc club meeting','0',
                           STR_TO_DATE('2016/02/08 11:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('database project','2160000',
+    INSERT INTO wt VALUES('database project','604800',
                           STR_TO_DATE('2016/02/29 08:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
