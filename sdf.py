@@ -11,7 +11,13 @@ from collections import defaultdict
 # kivy stuff
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.graphics import InstructionGroup, Rectangle, Color, RoundedRectangle
+from kivy.graphics import (
+    InstructionGroup,
+    Rectangle,
+    Color,
+    RoundedRectangle,
+    Ellipse
+)
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.properties import ObjectProperty
@@ -20,10 +26,10 @@ import sys
 from kivy.core.window import Window
 from kivy.clock import Clock
 
-from ics import Calendar# , Event
+from ics import Calendar  # , Event
 import arrow
 import os
-
+# from dateutil import tz
 
 
 class CalGame(GridLayout):  # main class
@@ -48,6 +54,9 @@ class CalGame(GridLayout):  # main class
 
     def makemarks(self):
         for child in self.children:
+            # draw today's marker
+            if (child.input == datetime.date.today()):
+                child.drawtodaymarker()
             # if event(s) found on this daybtn
             # child is DayBtn
             # contains datetime.datetime in input
@@ -59,6 +68,48 @@ class CalGame(GridLayout):  # main class
                 child.drawnew(dodwj[child.input][event])
 
         self.canvas.add(ig1)
+
+        getspace(self)
+
+
+def getspace(self):
+    # check job against each day (in month)
+    currday = 1
+    while (currday <= ditm()):
+        datetocheck = arrow.get(2016, 2, currday)
+        jobstodo = 0
+        daydict[datetocheck] = jobstodo
+        if (currday == 7 or currday == 8):
+            print('########## CURRDAY =' + str(currday))
+
+        for job in joblist:
+            # minimum start work date in int
+            # compensate for time zone headache (TODO: solve later)
+            mswdint = int(job.doBy.strftime("%s")) - job.timeReq - 18000
+            mswd = arrow.get(mswdint)
+            # print(mswd.format('X'))
+            dobyarrow = (arrow.get(job.doBy))
+
+            mswd = mswd.floor('day')
+            dobyarrow = dobyarrow.ceil('day')
+
+            # if the day is a working day
+            # x > y means x is more recent than y
+            if (datetocheck.floor('day') <= dobyarrow and
+                datetocheck.floor('day') >= mswd):
+                jobstodo = jobstodo + 1
+                if (currday == 7 or currday == 8):
+                    print('need to do ' + str(job.name))
+            daydict[datetocheck] = jobstodo
+
+            # modindex converted (because children are in reverse order)
+
+        dtmc = ditm() - currday + dofotm()
+        self.children[dtmc].text = \
+            self.children[dtmc].text + "\n" + \
+            str(daydict[arrow.get(2016, 2, currday)]) + " js"
+
+        currday = currday + 1
 
 
 class EW(Widget):  # empty widget class
@@ -81,16 +132,24 @@ class DayBtn(Button):  # day button class
     def on_release(self):
         ntf(self.input)
 
+    def drawtodaymarker(self):
+        ig1.add(Color(1, 1, 1, 0.4))
+        ig1.add(Ellipse(size=(self.width-40,
+                              self.height-40),
+                        pos=(self.x+20,
+                             self.y+20)))
+
     def drawnew(self, job):
         # TODO: pass into function better, maybe dont need job
         #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
         ig1.add(Color(1, 1, 0, 0.5))
+        # basic marker to indicate doBy
         ig1.add(RoundedRectangle(size=(self.width-40,
-                                self.height-40),
-                          pos=(self.x+20,
-                               self.y+20),
-                          radius=(15,15)))
+                                 self.height-40),
+                                 pos=(self.x+20,
+                                      self.y+20),
+                                 radius=(15, 15)))
         # calculate timereq indicator stuff...
         secwidth = Window.width/7./86400.  # pixels per second
         # timeReq width
@@ -104,7 +163,7 @@ class DayBtn(Button):  # day button class
         # max possible bar width, based on day of the week
         maxtrw = Window.width / 7 * dayindex
 
-        fillx = self.width/2  # fills out the bar 
+        fillx = self.width/2  # fills out the bar
 
         fullbars = 0
         topbar = 0
@@ -167,6 +226,7 @@ class CalApp(App):
 
 # dodwj = {} #dictionary of days with jobs
 dodwj = defaultdict(dict)
+daydict = defaultdict(dict)
 ig1 = InstructionGroup()
 
 
@@ -210,8 +270,8 @@ class Job:
                  datetime,
                  timereq, job_id):
         self.name = name
-        self.timeReq = timereq # timeReq is time required in SECONDS
-        
+        self.timeReq = timereq  # timeReq is time required in SECONDS
+
         # doBy is the date of occurence
         #                             year  m  d   h   m   s   mics  tz
         self.doBy = datetime
@@ -266,7 +326,7 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('something new on same date','1',
+    INSERT INTO wt VALUES('something new on same date','604800',
                           STR_TO_DATE('2016/02/27 23:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
@@ -294,6 +354,7 @@ def initdbclass():
     db.query(q)
     icstosql()
     db.cnx.commit()
+
 
 def icstosql():
     # adds events after 1/1/2016 from ics file, if exists, to sql db
