@@ -37,6 +37,7 @@ import os
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.lang import Builder
 # from kivy.uix.label import Label
+import random
 
 Builder.load_string("""
 <SecondScreen>:
@@ -50,7 +51,7 @@ Builder.load_string("""
 <NW>:
     canvas:
         Color:
-            rgba:1,0,0,0.5
+            rgba:.2,.2,.2,.8
         Rectangle:
             size:(self.size)
             pos:(self.pos)
@@ -82,6 +83,7 @@ class CalGame(GridLayout):  # main class
                 currday = currday + 1
 
     def makemarks(self):
+        getspace(self)
         for child in self.children:
             # draw today's marker
             if (child.input == datetime.date.today()):
@@ -98,7 +100,6 @@ class CalGame(GridLayout):  # main class
 
         self.canvas.add(ig1)
 
-        getspace(self)
 
 
 def getspace(self):
@@ -133,10 +134,20 @@ def getspace(self):
 
             # modindex converted (because children are in reverse order)
 
+        # index of button in list of children
         dtmc = ditm() - currday + dofotm()
         self.children[dtmc].text = \
-            self.children[dtmc].text + "\n" + \
-            str(len(daydict[arrow.get(2016, 2, currday)])) + " js"
+            self.children[dtmc].text  #  + "\n" + \
+            # str(len(daydict[arrow.get(2016, 2, currday)])) + " js"
+
+        ###################################
+        x = 1
+        for item in daydict[arrow.get(2016, 2, currday)]:
+            if (item.line == 0):
+                item.line = x
+            x = x + 1
+
+            print("WLSKDFSLDF " + str(item.name) + " " + str(item.line))
 
         currday = currday + 1
 
@@ -204,10 +215,21 @@ class DayBtn(Button):  # day button class
         # TODO: pass into function better, maybe dont need job
         #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
-        ig1.add(Color(1, 1, 0, 0.5))
+        r = random.random()
+        g = random.random()
+        b = random.random()
+        job.clr = (r,g,b,1)
+
+        ig1.add(Color(r,g,b,1))
+        print(str(r) + " " + str(g) + " " + str(b))
+        print(job.clr)
+        # ig1.add(Color(job.clr))
         # basic marker to indicate doBy
-        ig1.add(RoundedRectangle(size=(self.width-40,
-                                 self.height-40),
+        mw = 66
+        mh = 66
+        print(job.clr)
+        ig1.add(RoundedRectangle(size=(mw,
+                                 mh),
                                  pos=(self.x+20,
                                       self.y+20),
                                  radius=(15, 15)))
@@ -230,6 +252,16 @@ class DayBtn(Button):  # day button class
         topbar = 0
         iteration = 3
         btmbar = 0
+        bh = 20
+
+        ##################
+        padding = 15
+        h1 = (self.height - padding)/2
+        h1 = 22
+
+        print("job.line = " + str(job.line))
+        if (job.line==2):
+            print("sdflasdflasjflasdkfjaslfj")
 
         if (trw >= maxtrw):
             # if can't fit
@@ -245,29 +277,29 @@ class DayBtn(Button):  # day button class
             for x in range(1, iteration+1):
                 if (x == iteration):
                     # dont draw full bars. draw last(top) bar.
-                    ig1.add(Color(1, 1, 0, 0.2))
+                    ig1.add(Color(r, g, b, 1))
                     ig1.add(Rectangle(size=(topbar,
-                                            self.height-80),
+                                            bh),
                                       pos=(self.parent.width-topbar,
-                                           self.y+20+self.parent.height/5.*x)))
+                                           self.y+(job.line-1)*h1+20+self.parent.height/5.*x)))
                 else:
                     # draw full bars
-                    ig1.add(Color(1, 1, 0, 0.2))
+                    ig1.add(Color(r, g, b, 1))
                     ig1.add(Rectangle(size=(self.parent.width,
-                                            self.height-80),
+                                            bh),
                                       pos=(0,
-                                           self.y+20+self.parent.height/5.*x)))
+                                           self.y+(job.line-1)*h1+20+self.parent.height/5.*x)))
 
         btmbar = trw
-        ig1.add(Color(1, 1, 0, 0.2))
+        ig1.add(Color(r, g, b, 1))
 
         if (job.timeReq > 0):  # if job is an event
             # TODO: timeReq can be used for events? change this to
             #       use a var like jobType or something
             ig1.add(Rectangle(size=(btmbar+fillx,
-                                    self.height-80),
+                                    bh),
                               pos=(self.x-btmbar,
-                                   self.y+20)))
+                                   self.y+(job.line-1)*h1+20)))
 
 
 class FirstScreen(Screen):
@@ -363,6 +395,11 @@ class Job:
         self.doBy = datetime
         # self.doBy = datetime.datetime(2016, 1, 27, 20, 46, 43, 0, None)
         self.job_id = job_id
+        self.line = 0
+        r = random.random()
+        g = random.random()
+        b = random.random()
+        self.clr = (r, g, b, 1)
 
     # time left (calculated from current time)
     def timeLeft(self):
@@ -427,7 +464,7 @@ def initdbclass():
 
     q = """
     INSERT INTO wt VALUES('csc club meeting','0',
-                          STR_TO_DATE('2016/02/08 11:00:00',
+                          STR_TO_DATE('2016/02/09 11:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
@@ -494,7 +531,6 @@ def ntf2(self,arg):  # new test function
     if (len(daydict[arwd]) > 0):
         for item in daydict[arwd]:
             lblstr = lblstr + item.name + '\n'
-            print(item.name)
     else:
         lblstr = 'No jobs on this day'
         print('none found')
