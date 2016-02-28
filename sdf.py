@@ -1,5 +1,5 @@
 import datetime
-from datetime import date
+# from datetime import date
 import calendar
 import tkinter as tk
 from tkinter import END
@@ -109,47 +109,49 @@ class CalGame(GridLayout):  # main class
         gridindex = dofotm() + 1
         currday = 1
         y = 0
-        mnth = datetime.datetime.today().month
+        mnth = arrow.get().month
 
         while (currday <= ditm()):
-            binddate = datetime.date(2016, mnth, currday)
+            arwdate = arrow.get(2016, mnth, currday).date()
+
+            # binddate = arrow.get(2016, mnth, currday)
+            # binddate = binddate.floor('day')
             if (y < gridindex):
                 # add empty widgets to fill grid
                 ew = EW()
                 self.add_widget(ew)
                 y = y + 1
             else:
-                self.add_widget(DayBtn(text=str(currday), input=binddate))
+                self.add_widget(DayBtn(text=str(currday), arwin=arwdate))
                 currday = currday + 1
 
     def makemarks(self):
         getspace(self)
         for child in self.children:
             # draw today's marker
-            if (child.input == datetime.date.today()):
+            if (child.arwin == arrow.get().date()):
                 child.drawtodaymarker()
             # if event(s) found on this daybtn
             # child is DayBtn
             # contains datetime.datetime in input
-            for event in dodwj[child.input]:
+            for event in dodwj[child.arwin]:
                 # event is i number, doesnt contain job data
                 # job data is in dodwj[child.input][event]
 
                 # add instructon for each event
-                child.drawnew(dodwj[child.input][event])
+                child.drawnew(dodwj[child.arwin][event])
 
         self.canvas.add(ig1)
 
 
 def getspace(self):
+    ditmvar = ditm()
     # check job against each day (in month)
     currday = 1
-    while (currday <= ditm()):
+    while (currday <= ditmvar):
         datetocheck = arrow.get(2016, 2, currday)
         jobstodo = []
-        daydict[datetocheck] = jobstodo
-        if (currday == 7 or currday == 8):
-            print('########## CURRDAY =' + str(currday))
+        daydict[datetocheck.date()] = jobstodo
 
         for job in joblist:
             # minimum start work date in int
@@ -180,7 +182,7 @@ def getspace(self):
 
         ###################################
         x = 1
-        for item in daydict[arrow.get(2016, 2, currday)]:
+        for item in daydict[arrow.get(2016, 2, currday).date()]:
             if (item.line == 0):
                 item.line = x
             x = x + 1
@@ -223,23 +225,24 @@ def spawnnw(self, job):
 
 
 class EWB(Button):
-    input = ObjectProperty()
+    screeninput = ObjectProperty()
 
     def on_release(self):
-        print(self.parent.parent)
+        self.parent.parent.parent.parent.current = '2'
+        print(self.parent.parent.parent)
 
 
 class EW(Widget):  # empty widget class
 
     # TODO: dummy var and method to be consistent with DayBtn class
-    input = ObjectProperty
+    arwin = arrow.get()
 
     def drawnew(self, job):
         pass
 
 
 class DayBtn(Button):  # day button class
-    input = ObjectProperty()
+    arwin = ObjectProperty()
     background_color = (1, 1, 1, 1)
     text_size = (100, 100)
     halign = 'right'
@@ -247,7 +250,7 @@ class DayBtn(Button):  # day button class
     font_size = 32
 
     def on_release(self):
-        ntf2(self, self.input)
+        ntf2(self, self.arwin)
 
     def drawtodaymarker(self):
         ig1.add(Color(1, 1, 1, 0.4))
@@ -315,9 +318,6 @@ class DayBtn(Button):  # day button class
         padding = 15
         h1 = (self.height - padding)/2
         h1 = 22
-
-        if (job.line == 2):
-            print("job.line == 2")
 
         if (trw >= maxtrw):
             # if can't fit
@@ -390,7 +390,7 @@ class CalApp(App):
         flo = FloatLayout()
         blo = BoxLayout(orientation='vertical')
         blo.add_widget(self.calmain)
-        ewb = EWB(text='ewb', input=sm, size_hint=(1, .05))
+        ewb = EWB(text='ewb', screeninput=sm, size_hint=(1, .05))
         ewb.size = (100, 100)
         blo.add_widget(ewb)
 
@@ -452,14 +452,14 @@ class Database:
 
 class Job:
     def __init__(self, name,
-                 datetime,
+                 arwdt,
                  timereq, job_id):
         self.name = name
         self.timeReq = timereq  # timeReq is time required in SECONDS
 
         # doBy is the date of occurence
         #                             year  m  d   h   m   s   mics  tz
-        self.doBy = datetime
+        self.doBy = arwdt
         # self.doBy = datetime.datetime(2016, 1, 27, 20, 46, 43, 0, None)
         self.job_id = job_id
         self.line = 0
@@ -550,7 +550,7 @@ def icstosql():
         with open('./cal.ics') as f:
             cal = Calendar(imports=f)
 
-        startdate = arrow.get(datetime.datetime(2016, 1, 1, 0, 0))
+        startdate = arrow.get(2016, 1, 1)
         for event in cal.events:
             if (event.begin > startdate):
                 inserticsevent(event)
@@ -568,21 +568,21 @@ def inserticsevent(event):
 
 
 def dofotm():  # day of first of this month
-    return date(datetime.datetime.today().year,
-                datetime.datetime.today().month, 1).weekday()
+    return arrow.get().replace(day=1).weekday()
 
 
 def dofotm_specific(y, m):  # day of first of a specific month
-    return date(y, m, 1).weekday()
+    return arrow.get(y, m, 1).weekday()
 
 
 def ditm():  # days in this month
-    return calendar.monthrange(datetime.datetime.today().year,
-                               datetime.datetime.today().month)[1]
+    return arrow.get().ceil('month').day
+    # return calendar.monthrange(datetime.datetime.today().year,
+                               # datetime.datetime.today().month)[1]
 
 
 def ditm_specific(y, m):  # days in this month
-    return calendar.monthrange(y, m)[1]
+    return arrow.get(y, m, 1).ceil('month').day
 
 
 def ntf(arg):  # new test function
@@ -591,13 +591,11 @@ def ntf(arg):  # new test function
         print(dodwj[arg][item])
 
 
-def ntf2(self, arg):  # new test function
-    arwint = int(arg.strftime("%s")) - 18000
-    arwd = arrow.get(arwint)
+def ntf2(self, arwin):  # new test function
 
-    if (len(daydict[arwd]) > 0):
+    if (len(daydict[arwin]) > 0):
         jobitem = []
-        for item in daydict[arwd]:
+        for item in daydict[arwin]:
             jobitem.append(item)
     else:
         jobitem = []
@@ -620,10 +618,11 @@ def calpop():
     daywidth = 32  # 32 pixels width
     calwidth = daywidth * 7  # 7 days in a week
     # calheight = daywidth * 5 # max 5 weeks in a month?
+    ditmvar = ditm()
 
     calwidth = 2  # temp calwidth, 2 is width based on characters
     for x in range(0, 9):  # will just break after done? max=99 is ok?
-        if (currday == ditm()):
+        if (currday == ditmvar()):
             break
         for y in range(0, 7):
             y = gridindex
@@ -632,7 +631,7 @@ def calpop():
             btn1 = tk.Button(root, width=calwidth, text=currday,
                              command=lambda j=binddate: tf(j))
             btn1.grid(row=x, column=y)
-            if (currday == ditm()):
+            if (currday == ditmvar()):
                 break
             currday = currday + 1
             gridindex = gridindex + 1
