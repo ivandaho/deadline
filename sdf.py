@@ -156,9 +156,7 @@ def getspace(self):
         for job in joblist:
             # minimum start work date in int
             # compensate for time zone headache (TODO: solve later)
-            mswdint = int(job.doBy.strftime("%s")) - job.timeReq - 18000
-            mswd = arrow.get(mswdint)
-            # print(mswd.format('X'))
+            mswd = arrow.get(job.doBy.timestamp - job.timeReq)
             dobyarrow = (arrow.get(job.doBy))
 
             mswd = mswd.floor('day')
@@ -647,7 +645,7 @@ def refreshjoblist():
     dbdata = db.query(q)
 
     for item in dbdata:
-        joblist.append(Job(item[0], item[2],
+        joblist.append(Job(item[0], arrow.get(item[2]),
                        item[1], item[3]))
 
     matches = 0  # dont even need this anymore
