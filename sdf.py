@@ -36,15 +36,43 @@ import os
 
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.lang import Builder
-# from kivy.uix.label import Label
+from kivy.uix.label import Label
 # import random
 
 Builder.load_string("""
 <SecondScreen>:
     BoxLayout:
-        # orientation: 'vertical'
+        orientation: 'vertical'
+        TBWidget:
+            InputFields:
+
+                name: 'NAME'
+                doby: 'DOBY'
+                type: 'TYPE'
+                timereq: 'TIMEREQ'
+
+                pos:self.parent.pos
+                size:self.parent.size
+                orientation: 'vertical'
+
+                TextInput:
+                    size:self.size
+                    text: str(self.parent.this)
+                TextInput:
+                    size:self.size
+                TextInput:
+                    size:self.size
+                TextInput:
+                    size:self.size
+                    canvas:
+                        Color:
+                            rgba:1,0,0,.3
+                        Rectangle:
+                            size:self.size
+                            pos:self.pos
+
         Button:
-            text: 'my settings button'
+            text: 'submit'
         Button:
             text: 'back to menu'
             on_press: root.manager.current = '1'
@@ -55,10 +83,26 @@ Builder.load_string("""
         Rectangle:
             size:(self.size)
             pos:(self.pos)
-    Label:
-        text: self.parent.lbltext
-        #size_hint:(None,None)
-        pos:(self.parent.x +self.width/2, self.parent.y + self.height/2)
+    BoxLayout:
+        orientation:'vertical'
+        NWLabel:
+        AddBtn:
+            size_hint:(1,0.1)
+            text:'Add Job'
+
+<NWLabel>:
+    pos:(self.parent.width, self.parent.height*1.2)
+    canvas:
+        Color:
+            rgba:1,0,0,.3
+        Rectangle:
+            size:(self.size)
+            pos:(self.pos)
+    text_size: self.size
+    text: self.parent.parent.lbltext
+    #size_hint:(None,None)
+    valign: 'top'
+
 """)
 
 def checkl():
@@ -115,10 +159,11 @@ class CalGame(GridLayout):  # main class
         gridindex = dofotm() + 1
         currday = 1
         y = 0
+        year = arrow.get().year
         mnth = arrow.get().month
 
         while (currday <= ditm()):
-            arwdate = arrow.get(2016, mnth, currday).date()
+            arwdate = arrow.get(year, mnth, currday).date()
 
             # binddate = arrow.get(2016, mnth, currday)
             # binddate = binddate.floor('day')
@@ -132,7 +177,6 @@ class CalGame(GridLayout):  # main class
                 currday = currday + 1
 
     def makemarks(self):
-        print('asdlfkjlfjw' + str(self.size))
         getspace(self)
         for child in self.children:
             # draw today's marker
@@ -155,8 +199,10 @@ def getspace(self):
     ditmvar = ditm()
     # check job against each day (in month)
     currday = 1
+    year = arrow.get().year
+    mnth = arrow.get().month
     while (currday <= ditmvar):
-        datetocheck = arrow.get(2016, 2, currday)
+        datetocheck = arrow.get(year, mnth, currday)
         jobstodo = []
         daydict[datetocheck.date()] = jobstodo
 
@@ -187,45 +233,71 @@ def getspace(self):
 
         ###################################
         x = 1
-        for item in daydict[arrow.get(2016, 2, currday).date()]:
+        for item in daydict[arrow.get(year, mnth, currday).date()]:
             if (item.line == 0):
                 item.line = x
             x = x + 1
 
         currday = currday + 1
 
+        
+class InputFields(BoxLayout):
+    this = StringProperty('unmodded')
 
-class NW(StackLayout):
+    strname = StringProperty()
+    strdoby = StringProperty()
+    strtype = StringProperty()
+    strtimereq = StringProperty()
 
-    lbltext = StringProperty()
+class AddBtn(Button):
+    def on_release(self):
+        InputFields.this = 'WAFKJF'
+        sm = self.parent.parent.parent.parent.parent
+        sm.current = '2'
+        refwid = sm.children[0].children[1].children[2].children[0]
+        timereqw = refwid.children[0]
+        typew = refwid.children[1]
+        dobyw = refwid.children[2]
+        namew = refwid.children[3]
 
-    def draw(self, jobitem):
-        self.lbltext = 'no jobs to do'
-        if (len(jobitem) > 0):
-            self.lbltext = ''
-            for item in jobitem:
-                self.lbltext = self.lbltext + str(item.name) + \
-                        ' due on ' + str(item.doBy) + \
-                        ' (' + str(arrow.get(item.doBy).humanize()) + \
-                        ')' + '\n'
+        timereqw.text = 'modded timereqw'
+        typew.text = 'modded typew'
+        dobyw.text = str(nw.date)
+        namew.text = 'modded namew'
 
+class NWLabel(Label):
     def on_touch_down(self, touch):
-        self.parent.remove_widget(self)
-        return True  # eats touch
         if self.collide_point(*touch.pos):
             # if clicked on box. for later
-            print(self.collide_point)
-            self.parent.remove_widget(self)
+            self.parent.parent.parent.remove_widget(nw)
             return True  # eats touch
+
+
+
+
+class NW(StackLayout):
+    date = arrow.get()
+    lbltext = StringProperty()
+
+    def draw(self, jobitems):
+        self.lbltext = 'no jobs to do'
+        if (len(jobitems) > 0):
+            self.lbltext = ''
+            for item in jobitems:
+                self.lbltext = self.lbltext + str(item.name) + \
+                        ' due on ' + str(item.doBy.format('M/D/YY HH:mm')) + \
+                        ' (' + str(item.doBy.humanize()) + \
+                        ')' + '\n'
+
 
 
 nw = NW(size=(Window.width*.85,Window.height*.85))
 nw.size_hint = (None, None)
 nw.pos = (Window.width/2 - nw.width/2, Window.height/2 - nw.height/2)# + EWB.height)
 
-
-def spawnnw(self, job):
-    nw.draw(job)
+def spawnnw(self, jobitems, arwin):
+    nw.draw(jobitems)
+    nw.date = arwin
     self.parent.parent.parent.add_widget(nw)
 
 
@@ -244,6 +316,9 @@ class EW(Widget):  # empty widget class
 
     def drawnew(self, job):
         pass
+
+class TBWidget(Widget):
+    lab = StringProperty()
 
 
 class DayBtn(Button):  # day button class
@@ -409,6 +484,8 @@ class CalApp(App):
         sm = ScreenManager()
         fs = FirstScreen(name='1')
         ss = SecondScreen(name='2')
+        tbw = TBWidget(lab="WHAT")
+        ss.add_widget(tbw)
 
         flo = FloatLayout()
         blo = BoxLayout(orientation='vertical')
@@ -459,12 +536,14 @@ class Database:
     def __del__(self):
         self.cnx.close()
 
-    def additem(self, table, name, time):
-        time = str(time)
+    def additem(self, table, name, timereq, doby):
+        table = 'wt'
+        # time = str(time)
         q = "INSERT INTO " + \
             table + " VALUES ('" + \
             name + "', '" + \
-            time + "', NULL);"
+            timereq + "', '" + \
+            doby + "', NULL);"
 
         self.query(q)
         # db.connection.commit()
@@ -617,13 +696,13 @@ def ntf(arg):  # new test function
 def ntf2(self, arwin):  # new test function
 
     if (len(daydict[arwin]) > 0):
-        jobitem = []
+        jobitems = []
         for item in daydict[arwin]:
-            jobitem.append(item)
+            jobitems.append(item)
     else:
-        jobitem = []
+        jobitems = []
 
-    spawnnw(self, jobitem)
+    spawnnw(self, jobitems, arwin)
 
 
 def tf(arg):
@@ -715,6 +794,7 @@ def refreshjoblist():
 if __name__ == "__main__":
     db = Database()  # custom database class (mysql)
     reset = False
+    # flag for rest/debug etc
 
     if (reset):
         initdbclass()
