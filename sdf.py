@@ -61,6 +61,12 @@ Builder.load_string("""
         pos:(self.parent.x +self.width/2, self.parent.y + self.height/2)
 """)
 
+def checkl():
+    if (Window.width > Window.height):
+        return True
+    else:
+        return False
+
 
 def rgb256to1(x, y, z):
     x = 1 / 256 * x
@@ -126,6 +132,7 @@ class CalGame(GridLayout):  # main class
                 currday = currday + 1
 
     def makemarks(self):
+        print('asdlfkjlfjw' + str(self.size))
         getspace(self)
         for child in self.children:
             # draw today's marker
@@ -212,9 +219,9 @@ class NW(StackLayout):
             return True  # eats touch
 
 
-nw = NW(size=(450, 450))
-nw.pos = (Window.width/2 - nw.width/2, Window.height/2 - nw.height/2)
+nw = NW(size=(Window.width*.85,Window.height*.85))
 nw.size_hint = (None, None)
+nw.pos = (Window.width/2 - nw.width/2, Window.height/2 - nw.height/2)# + EWB.height)
 
 
 def spawnnw(self, job):
@@ -242,20 +249,27 @@ class EW(Widget):  # empty widget class
 class DayBtn(Button):  # day button class
     arwin = ObjectProperty()
     background_color = (1, 1, 1, 1)
-    text_size = (100, 100)
+    text_size = (int(Window.width*0.7*0.15), int(Window.height*0.7*0.13))
+    print(str("SDLFKSJDFLJ TEXT SIze" + str(text_size)))
     halign = 'right'
     valign = 'top'
-    font_size = 32
+    font_size = int(text_size[0]*0.25)
 
     def on_release(self):
         ntf2(self, self.arwin)
 
     def drawtodaymarker(self):
         ig1.add(Color(1, 1, 1, 0.4))
-        ig1.add(Ellipse(size=(self.width-40,
-                              self.height-40),
-                        pos=(self.x+20,
-                             self.y+20)))
+        scale = 0.9 # scale * button width/height, whichever is lower
+        if (checkl()):
+            x = self.height*scale
+        else:
+            x = self.width*scale
+
+        ig1.add(Ellipse(size=(x,
+                              x),
+                        pos=(self.x + self.width/2 - x/2,
+                             self.y + self.height/2 - x/2)))
 
     def drawnew(self, job):
         # TODO: pass into function better, maybe dont need job
@@ -284,13 +298,17 @@ class DayBtn(Button):  # day button class
                       self.parent.cl[ri][2],))
         # ig1.add(Color(job.clr))
         # basic marker to indicate doBy
-        mw = 74
-        mh = 74
+        if(checkl()):
+            mw = int(self.height*0.8)
+        else:
+            mw = int(self.width*0.8)
+        mh = mw
+        rad = int(mw*0.2027)
         ig1.add(RoundedRectangle(size=(mw,
                                  mh),
                                  pos=(self.x+self.width/2-mw/2,
-                                      self.y+self.width/2-mh/2),
-                                 radius=(15, 15)))
+                                      self.y+self.height/2-mh/2),
+                                 radius=(rad, rad)))
         # calculate timereq indicator stuff...
         secwidth = self.parent.width/7./86400.  # pixels per second
         # timeReq width
@@ -310,12 +328,15 @@ class DayBtn(Button):  # day button class
         topbar = 0
         iteration = 3
         btmbar = 0
-        bh = 20
+        totalspacing = int(mw * 0.03)
+        spacing = totalspacing + totalspacing
+        bh = int((mw-totalspacing)/3)  # bar height
 
         ##################
-        padding = 15
-        h1 = (self.height - padding)/2
-        h1 = 22
+        h1 = self.y+self.height/2-mh/2 # make btm flush with main indicator
+        print(h1)
+        jlos = bh + spacing  # job line offset
+        bos = self.height/2-mh/2  # base offset
 
         if (trw >= maxtrw):
             # if can't fit
@@ -337,8 +358,9 @@ class DayBtn(Button):  # day button class
                     ig1.add(Rectangle(size=(topbar,
                                             bh),
                                       pos=(self.parent.width - topbar,
-                                           self.y + (job.line - 1) * h1 +
-                                           20 + self.parent.height / 5. * x)))
+                                           self.y + bos + 
+                                           (job.line - 1) * jlos +
+                                           self.parent.height / 5. * x)))
                 else:
                     # draw full bars
                     ig1.add(Color(self.parent.cl[ri][0],
@@ -347,10 +369,13 @@ class DayBtn(Button):  # day button class
                     ig1.add(Rectangle(size=(self.parent.width,
                                             bh),
                                       pos=(0,
-                                           self.y + (job.line - 1) * h1 +
-                                           20 + self.parent.height / 5. * x)))
+                                           self.y + bos + 
+                                           (job.line - 1) * jlos +
+                                           self.parent.height / 5. * x)))
 
         btmbar = trw
+        if (btmbar > maxtrw):
+            btmbar = maxtrw
         ig1.add(Color(self.parent.cl[ri][0],
                       self.parent.cl[ri][1],
                       self.parent.cl[ri][2],))
@@ -361,7 +386,7 @@ class DayBtn(Button):  # day button class
             ig1.add(Rectangle(size=(btmbar+fillx,
                                     bh),
                               pos=(self.x-btmbar,
-                                   self.y+(job.line-1)*h1+20)))
+                                   h1)))
 
 
 class FirstScreen(Screen):
@@ -373,7 +398,7 @@ class SecondScreen(Screen):
 
 
 class CalApp(App):
-    calmain = CalGame(cols=7, size_hint=(1, .95))
+    calmain = CalGame(cols=7, size_hint=(1, .55))
     calmain.size = (Window.width, Window.height * 0.95)
     calmain.pos = (0, Window.height - Window.height * 0.95)
 
@@ -388,8 +413,8 @@ class CalApp(App):
         flo = FloatLayout()
         blo = BoxLayout(orientation='vertical')
         blo.add_widget(self.calmain)
-        ewb = EWB(text='ewb', screeninput=sm, size_hint=(1, .05))
-        ewb.size = (100, 100)
+        ewb = EWB(text='ewb', screeninput=sm, size_hint=(1, .45))
+        # ewb.size = (100,100) # why do i need this??
         blo.add_widget(ewb)
 
         flo.add_widget(blo)
