@@ -11,16 +11,19 @@ Thus, it should be visualized as something like this:
 
 ![example image](http://i.imgur.com/tQFLs6u.png)
 
+Current progress:
+![example image](http://i.imgur.com/NJyBl4d.png)
+![example image](http://i.imgur.com/WTu2a4g.png)
 
 
-Currently I am experimenting with tkinter for the GUI, but I am prioritizing writing code for the backend.
 
-Written in Python3 with a MySQL database connection.
+Written in Python3.<br>
+requirements: [kivy](https://kivy.org/#home), [ics.py](https://github.com/C4ptainCrunch/ics.py), [mysql.connector](http://dev.mysql.com/downloads/connector/python/), [arrow](http://crsmithdev.com/arrow/)
 
 TODO/GENERAL GOALS:
 
 * Bar style visualization for a specific time period (day, week, month, etc)
 * Click a day to view tasks due on day
-* Click a day to view tasks that I am able to work towards (for example, in the picture, on Tuesday I am able to work towards completing my laundry and my paper)
+* Click a day to view tasks that I should work on 
 * Enter a time period (such as 5 hours) and generate a sublist of jobs that I can complete within that time. Useful if I have a time window during which I want to get smaller jobs out of the way.
 * Group jobs into organizations (such as work, school, family, leisure) for easier viewing
