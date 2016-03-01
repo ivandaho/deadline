@@ -11,8 +11,8 @@ Thus, it should be visualized as something like this:
 
 ![example image](http://i.imgur.com/tQFLs6u.png)
 
-Current progress:
-![example image](http://i.imgur.com/NJyBl4d.png)
+Current progress (sorry about the giant button. I'm testing how it would look like on a phone display):<br><br>
+![example image](http://i.imgur.com/NJyBl4d.png)<br>
 ![example image](http://i.imgur.com/WTu2a4g.png)
 
 
