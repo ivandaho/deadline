@@ -1,9 +1,4 @@
 import datetime
-# from datetime import date
-import calendar
-import tkinter as tk
-from tkinter import END
-# from tkinter import BOTH
 import mysql.connector
 
 from collections import defaultdict
@@ -16,7 +11,6 @@ from kivy.graphics import (
     Rectangle,
     Color,
     RoundedRectangle,
-    Ellipse
 )
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
@@ -153,9 +147,11 @@ class CalGame(GridLayout):  # main class
     cl.append(rgb256to1(234, 194, 81))
     seed = 20
 
+    ig1 = InstructionGroup()
+    ig2 = InstructionGroup()
+
     def kivycalpop(self):
-        # same draw method, just in kivy instead of tkinter
-        # this is for the buttons only. makemarks handles other gfx
+        # this is for the calendar buttons only
         gridindex = dofotm() + 1
         currday = 1
         y = 0
@@ -165,10 +161,9 @@ class CalGame(GridLayout):  # main class
         while (currday <= ditm()):
             arwdate = arrow.get(year, mnth, currday).date()
 
-            # binddate = arrow.get(2016, mnth, currday)
-            # binddate = binddate.floor('day')
             if (y < gridindex):
                 # add empty widgets to fill grid
+                # to create offset for first day of week
                 ew = EW()
                 self.add_widget(ew)
                 y = y + 1
@@ -176,39 +171,53 @@ class CalGame(GridLayout):  # main class
                 self.add_widget(DayBtn(text=str(currday), arwin=arwdate))
                 currday = currday + 1
 
+    def rm(self, insgrp1, insgrp2):
+        self.canvas.remove(insgrp1)
+        insgrp2.clear()
+        pass
     def makemarks(self):
+        self.rm(self.ig1, self.ig2)
         getspace(self)
+        self.ig1.clear()
+        self.ig2.clear()
         for child in self.children:
-            # draw today's marker
-            if (child.arwin == arrow.get().date()):
-                child.drawtodaymarker()
-            # if event(s) found on this daybtn
-            # child is DayBtn
-            # contains datetime.datetime in input
-            for event in dodwj[child.arwin]:
-                # event is i number, doesnt contain job data
-                # job data is in dodwj[child.input][event]
+            if (isinstance(child, DayBtn)):
+                if (child.arwin == arrow.get().date()):
+                # draw today's marker
+                    child.drawtodaymarker(self.ig1)
+                # if event(s) found on this daybtn
+                # child is DayBtn
+                # contains datetime.datetime in input
+                for event in dodwj[child.arwin]:
+                    # event is i number, doesnt contain job data
+                    # job data is in dodwj[child.input][event]
 
-                # add instructon for each event
-                child.drawnew(dodwj[child.arwin][event])
+                    # add instructon for each event
+                    child.drawnew(dodwj[child.arwin][event], self.ig2)
 
-        self.canvas.add(ig1)
+        self.canvas.add(self.ig1) # 2 is job related markers
+        self.canvas.add(self.ig2) # 2 is job related markers
+
 
 
 def getspace(self):
+    # get days in this month first
     ditmvar = ditm()
     # check job against each day (in month)
+    # this is for the bars. have to check each day
+    # to see what jobs need to be done on what days
     currday = 1
     year = arrow.get().year
     mnth = arrow.get().month
     while (currday <= ditmvar):
         datetocheck = arrow.get(year, mnth, currday)
         jobstodo = []
-        daydict[datetocheck.date()] = jobstodo
 
         for job in joblist:
             # minimum start work date in int
             # compensate for time zone headache (TODO: solve later)
+            # this is to calculate line number 
+            # (for days with multiple jobs)
             mswd = arrow.get(job.doBy.timestamp - job.timeReq)
             dobyarrow = (arrow.get(job.doBy))
 
@@ -220,18 +229,9 @@ def getspace(self):
             if (datetocheck.floor('day') <= dobyarrow):
                 if (datetocheck.floor('day') >= mswd):
                     jobstodo.append(job)
-                    if (currday == 7 or currday == 8):
-                        print('need to do ' + str(job.name))
-            daydict[datetocheck] = jobstodo
 
-            # modindex converted (because children are in reverse order)
+            daydict[datetocheck.date()] = jobstodo 
 
-        # dtmc =index of button in list of children
-        # dtmc = ditm() - currday + dofotm()
-        # self.children[dtmc].text = self.children[dtmc].text  # + "\n" + \
-            # str(len(daydict[arrow.get(2016, 2, currday)])) + " js"
-
-        ###################################
         x = 1
         for item in daydict[arrow.get(year, mnth, currday).date()]:
             if (item.line == 0):
@@ -305,16 +305,12 @@ class EWB(Button):
     screeninput = ObjectProperty()
 
     def on_release(self):
-        self.parent.parent.parent.parent.current = '2'
-        print(self.parent.parent.parent)
+        pass
+        # self.parent.parent.parent.parent.current = '2'
+        # print(self.parent.parent.parent)
 
 
 class EW(Widget):  # empty widget class
-
-    # TODO: dummy var and method to be consistent with DayBtn class
-    arwin = arrow.get()
-
-    def drawnew(self, job):
         pass
 
 class TBWidget(Widget):
@@ -325,7 +321,6 @@ class DayBtn(Button):  # day button class
     arwin = ObjectProperty()
     background_color = (1, 1, 1, 1)
     text_size = (int(Window.width*0.7*0.15), int(Window.height*0.7*0.13))
-    print(str("SDLFKSJDFLJ TEXT SIze" + str(text_size)))
     halign = 'right'
     valign = 'top'
     font_size = int(text_size[0]*0.25)
@@ -333,20 +328,18 @@ class DayBtn(Button):  # day button class
     def on_release(self):
         ntf2(self, self.arwin)
 
-    def drawtodaymarker(self):
-        ig1.add(Color(1, 1, 1, 0.4))
+    def drawtodaymarker(self, insgrp):
+        insgrp.add(Color(1, 1, 1, 0.4))
         scale = 0.9 # scale * button width/height, whichever is lower
-        if (checkl()):
-            x = self.height*scale
-        else:
-            x = self.width*scale
+        x = self.width*scale
+        y = self.height - self.width + x
 
-        ig1.add(Ellipse(size=(x,
-                              x),
+        insgrp.add(Rectangle(size=(x,
+                              y),
                         pos=(self.x + self.width/2 - x/2,
-                             self.y + self.height/2 - x/2)))
+                             self.y + self.height/2 - y/2)))
 
-    def drawnew(self, job):
+    def drawnew(self, job, insgrp):
         # TODO: pass into function better, maybe dont need job
         #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
@@ -362,16 +355,16 @@ class DayBtn(Button):  # day button class
         if (self.parent.seed == len(self.parent.cl)-1):
             self.parent.seed = 0
         # ri = random.randint(0, len(self.parent.cl)-1)
-        self.parent.cl.pop(ri)
+        #self.parent.cl.pop(ri)
 
         job.clr = self.parent.cl[ri][0],\
             self.parent.cl[ri][1],\
             self.parent.cl[ri][2]
 
-        ig1.add(Color(self.parent.cl[ri][0],
+        insgrp.add(Color(self.parent.cl[ri][0],
                       self.parent.cl[ri][1],
                       self.parent.cl[ri][2],))
-        # ig1.add(Color(job.clr))
+        # insgrp.add(Color(job.clr))
         # basic marker to indicate doBy
         if(checkl()):
             mw = int(self.height*0.8)
@@ -379,7 +372,7 @@ class DayBtn(Button):  # day button class
             mw = int(self.width*0.8)
         mh = mw
         rad = int(mw*0.2027)
-        ig1.add(RoundedRectangle(size=(mw,
+        insgrp.add(RoundedRectangle(size=(mw,
                                  mh),
                                  pos=(self.x+self.width/2-mw/2,
                                       self.y+self.height/2-mh/2),
@@ -409,7 +402,6 @@ class DayBtn(Button):  # day button class
 
         ##################
         h1 = self.y+self.height/2-mh/2 # make btm flush with main indicator
-        print(h1)
         jlos = bh + spacing  # job line offset
         bos = self.height/2-mh/2  # base offset
 
@@ -427,10 +419,10 @@ class DayBtn(Button):  # day button class
             for x in range(1, iteration+1):
                 if (x == iteration):
                     # dont draw full bars. draw last(top) bar.
-                    ig1.add(Color(self.parent.cl[ri][0],
+                    insgrp.add(Color(self.parent.cl[ri][0],
                                   self.parent.cl[ri][1],
                                   self.parent.cl[ri][2],))
-                    ig1.add(Rectangle(size=(topbar,
+                    insgrp.add(Rectangle(size=(topbar,
                                             bh),
                                       pos=(self.parent.width - topbar,
                                            self.y + bos + 
@@ -438,10 +430,10 @@ class DayBtn(Button):  # day button class
                                            self.parent.height / 5. * x)))
                 else:
                     # draw full bars
-                    ig1.add(Color(self.parent.cl[ri][0],
+                    insgrp.add(Color(self.parent.cl[ri][0],
                                   self.parent.cl[ri][1],
                                   self.parent.cl[ri][2],))
-                    ig1.add(Rectangle(size=(self.parent.width,
+                    insgrp.add(Rectangle(size=(self.parent.width,
                                             bh),
                                       pos=(0,
                                            self.y + bos + 
@@ -451,14 +443,14 @@ class DayBtn(Button):  # day button class
         btmbar = trw
         if (btmbar > maxtrw):
             btmbar = maxtrw
-        ig1.add(Color(self.parent.cl[ri][0],
+        insgrp.add(Color(self.parent.cl[ri][0],
                       self.parent.cl[ri][1],
                       self.parent.cl[ri][2],))
 
         if (job.timeReq > 0):  # if job is an event
             # TODO: timeReq can be used for events? change this to
             #       use a var like jobType or something
-            ig1.add(Rectangle(size=(btmbar+fillx,
+            insgrp.add(Rectangle(size=(btmbar+fillx,
                                     bh),
                               pos=(self.x-btmbar,
                                    h1)))
@@ -473,11 +465,14 @@ class SecondScreen(Screen):
 
 
 class CalApp(App):
+    # main window area
     calmain = CalGame(cols=7, size_hint=(1, .55))
     calmain.size = (Window.width, Window.height * 0.95)
     calmain.pos = (0, Window.height - Window.height * 0.95)
 
     def delayed(self, dt):
+        self.calmain.makemarks()
+    def asd2(self, *args):
         self.calmain.makemarks()
 
     def build(self):
@@ -490,7 +485,7 @@ class CalApp(App):
         flo = FloatLayout()
         blo = BoxLayout(orientation='vertical')
         blo.add_widget(self.calmain)
-        ewb = EWB(text='ewb', screeninput=sm, size_hint=(1, .45))
+        ewb = EWB(text='reroll colours', screeninput=sm, size_hint=(1, .45), on_release=(self.asd2))
         # ewb.size = (100,100) # why do i need this??
         blo.add_widget(ewb)
 
@@ -512,7 +507,6 @@ class CalApp(App):
 dodwj = defaultdict(dict)
 # dictionary of days with jobs
 daydict = defaultdict(dict)
-ig1 = InstructionGroup()
 
 
 class Database:
@@ -608,35 +602,35 @@ def initdbclass():
 
     q = """
     INSERT INTO wt VALUES('laundry','86400',
-                          STR_TO_DATE('2016/02/18 20:46:43',
+                          STR_TO_DATE('2016/03/18 20:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('something new on same date','604800',
-                          STR_TO_DATE('2016/02/27 23:46:43',
+                          STR_TO_DATE('2016/03/27 23:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('paper','172800',
-                          STR_TO_DATE('2016/02/08 14:00:00',
+                          STR_TO_DATE('2016/03/08 14:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('csc club meeting','0',
-                          STR_TO_DATE('2016/02/09 11:00:00',
+                          STR_TO_DATE('2016/03/09 11:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('database project','604800',
-                          STR_TO_DATE('2016/02/29 08:00:00',
+                          STR_TO_DATE('2016/03/29 08:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
@@ -705,74 +699,31 @@ def ntf2(self, arwin):  # new test function
     spawnnw(self, jobitems, arwin)
 
 
-def tf(arg):
-    print("button pressed, tf(" + str(arg) + ") invoked")
-    joblistbox.delete(0, END)
-    for item in dodwj[arg]:
-        joblistbox.insert(END, dodwj[arg][item])
-    # print(dodwj[arg])
-
-
-def calpop():
-    # populates a grid with the days of the month in a button format
-    gridindex = dofotm() + 1
-    currday = 1
-    daywidth = 32  # 32 pixels width
-    calwidth = daywidth * 7  # 7 days in a week
-    # calheight = daywidth * 5 # max 5 weeks in a month?
-    ditmvar = ditm()
-
-    calwidth = 2  # temp calwidth, 2 is width based on characters
-    for x in range(0, 9):  # will just break after done? max=99 is ok?
-        if (currday == ditmvar()):
-            break
-        for y in range(0, 7):
-            y = gridindex
-            mnth = datetime.datetime.today().month
-            binddate = datetime.date(2016, mnth, currday)
-            btn1 = tk.Button(root, width=calwidth, text=currday,
-                             command=lambda j=binddate: tf(j))
-            btn1.grid(row=x, column=y)
-            if (currday == ditmvar()):
-                break
-            currday = currday + 1
-            gridindex = gridindex + 1
-            if (gridindex == 7):
-                gridindex = 0
-                break
-
-
-def refreshjoblist():
+def refreshjoblist(joblist):
+    # pull data from sql db
     q = """
     SELECT * from wt;
     """
     dbdata = db.query(q)
 
+    # delete all items in joblist 
+    del joblist[0:len(joblist)]
+    # add items from sql db to joblist
     for item in dbdata:
         joblist.append(Job(item[0], arrow.get(item[2]),
                        item[1], item[3]))
 
-    matches = 0  # dont even need this anymore
+        doBylist.append(arrow.get(item[2]).date())
 
-    for item in joblist:
-        if (item.doBy.date() in doBylist):
-            matches = matches + 1
-        else:
-            doBylist.append(item.doBy.date())
 
-    newlist = [x for x in doBylist if x == joblist[0].doBy.date()]
-    print("sdf " + str(newlist))  # newlist contains unique dates?
     i = 1
-    global dodwj
     for item in joblist:
+        # dictionary of jobs sorted by DATE
         if(item.doBy.date() in dodwj):
             i = i + 1
-            dodwj[item.doBy.date()][i] = item  # dict can override
-        else:
-            dodwj[item.doBy.date()][i] = item  # dict can override
-        i = 1
-    print("printing dodwj:")
 
+        dodwj[item.doBy.date()][i] = item  # dict can override
+        i = 1
     # to access list of jobs by date... # TIP
     # for item in dodwj:
     #    for jobitem in dodwj[item]:
@@ -800,35 +751,10 @@ if __name__ == "__main__":
         initdbclass()
     joblist = []
     doBylist = []
-    refreshjoblist()
+    refreshjoblist(joblist)
 
-    c = calendar
-    year = 2016
-    month = 1
 
     # db.additem('wt', 'newdbitem', '3600')
 
     CalApp().run()
     sys.exit()
-    ################
-    # tkinter stuff
-    root = tk.Tk()
-    root.title("tkinter window")
-    test1 = tk.Label(root, text="thistext")
-
-#    f = tk.Frame(root, height=32, width=32)
-#    f.pack_propagate(0)
-#    f.pack()
-
-#    btn1 = tk.Button(f, text = "a button", command=tf)
-#    btn1.pack(fill=BOTH, expand=1)
-
-    joblistbox = tk.Listbox(root, width=35, height=5)
-    for item in joblist:
-        joblistbox.insert(END, item.name)  # insert in listbox
-
-    joblistbox.grid(row=5, columnspan=7)  # figure this out
-
-    calpop()
-
-    root.mainloop()
