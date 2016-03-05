@@ -37,39 +37,48 @@ Builder.load_string("""
 <SecondScreen>:
     BoxLayout:
         orientation: 'vertical'
-        TBWidget:
-            InputFields:
+        inf: inf
+        InputFields:
+            id: inf
+            txt_a: txt_a
 
-                name: 'NAME'
-                doby: 'DOBY'
-                type: 'TYPE'
-                timereq: 'TIMEREQ'
+            name: 'NAME'
+            doby: 'DOBY'
+            type: 'TYPE'
+            timereq: 'TIMEREQ'
 
-                pos:self.parent.pos
-                size:self.parent.size
-                orientation: 'vertical'
+            pos:self.parent.pos
+            size:self.parent.size
+            orientation: 'vertical'
 
-                TextInput:
-                    size:self.size
-                    text: str(self.parent.this)
-                TextInput:
-                    size:self.size
-                TextInput:
-                    size:self.size
-                TextInput:
-                    size:self.size
-                    canvas:
-                        Color:
-                            rgba:1,0,0,.3
-                        Rectangle:
-                            size:self.size
-                            pos:self.pos
+            Label:
+                text: 'choose date first'
+            TextInput:
+                id: txt_a
+                text: str(self.parent.strname)
+                size:self.size
+            TextInput:
+                id: txt_c
+                text: str(self.parent.strtype)
+                size:self.size
+            TextInput:
+                id: txt_d
+                text: str(self.parent.strtimereq)
+                size:self.size
+                canvas:
+                    Color:
+                        rgba:1,0,0,.3
+                    Rectangle:
+                        size:self.size
+                        pos:self.pos
 
-        Button:
-            text: 'submit'
-        Button:
+        SubmitBtn:
+            size_hint: (1, .25)
+            text:'Submit Job'
+        BackBtn:
+            size_hint: (1, .25)
             text: 'back to menu'
-            on_press: root.manager.current = '1'
+            # on_press: root.manager.current = '1'
 <NW>:
     canvas:
         Color:
@@ -98,6 +107,7 @@ Builder.load_string("""
     valign: 'top'
 
 """)
+
 
 def checkl():
     if (Window.width > Window.height):
@@ -175,7 +185,9 @@ class CalGame(GridLayout):  # main class
         self.canvas.remove(insgrp1)
         insgrp2.clear()
         pass
+
     def makemarks(self):
+        print('MADE MARKS!')
         self.rm(self.ig1, self.ig2)
         getspace(self)
         self.ig1.clear()
@@ -189,6 +201,7 @@ class CalGame(GridLayout):  # main class
                 # child is DayBtn
                 # contains datetime.datetime in input
                 for event in dodwj[child.arwin]:
+                    print('detected event. calling drawnew')
                     # event is i number, doesnt contain job data
                     # job data is in dodwj[child.input][event]
 
@@ -244,26 +257,77 @@ def getspace(self):
 class InputFields(BoxLayout):
     this = StringProperty('unmodded')
 
-    strname = StringProperty()
-    strdoby = StringProperty()
-    strtype = StringProperty()
-    strtimereq = StringProperty()
+    strname = 'enter name'
+    strdoby = 'enter doby'
+    strtype = 'enter type'
+    strtimereq = 'enter timereq in seconds'
+
+    txt_a = ObjectProperty(None)
+    
+    def comp(self):
+        print(self.txt_a.text)
+
+
+class BackBtn(Button):
+    def on_release(self):
+        sm = self.parent.parent.parent
+        sm.current = '1'
+
+class SubmitBtn(Button):
+
+    inf = ObjectProperty(None)
+    datevar = arrow.get()
+    def on_release(self):
+        # print(self.parent.inf.txt_a)
+        # self.parent.children[2].children[0].comp()
+
+        # date = self.parent.children[2].children[1].text
+        name = self.parent.children[2].children[2].text
+        timereq = self.parent.children[2].children[0].text
+        datestr = self.datevar.format('YYYY/MM/DD HH:mm:ss')
+        # datestr = '2016/03/25 08:00:00' # event.begin.format('YYYY/MM/DD HH:mm:ss')
+        #jobtype = self.parent.children[2].children[0].children[1].text timereq = self.parent.children[2].children[0].children[0].text
+        # q = "INSERT INTO wt VALUES('" + str(name) + "','" + str(timereq) + "', STR_TO_DATE('2016/03/25 08:00:00', '%Y/%m/%d %T'), NULL"
+
+        q = 'INSERT INTO wt VALUES(\''
+        q = q + name
+        q = q + '\',\'' + timereq + '\','
+        q = q + ' STR_TO_DATE(\''
+        q = q + datestr + '\', \'%Y/%m/%d %T\'), NULL);'
+        print('QUERY: ')
+        print(q)
+        db.query(q)
+        db.cnx.commit()
+
+        refreshjoblist(joblist, doBylist, dodwj, daydict)
+        self.parent.parent.parent.current = '1'
+        print(self.parent.parent.parent.children[0].children[0].children[1].children[1])
+        self.parent.parent.parent.children[0].children[0].children[1].children[1].makemarks()
 
 class AddBtn(Button):
     def on_release(self):
         InputFields.this = 'WAFKJF'
         sm = self.parent.parent.parent.parent.parent
         sm.current = '2'
-        refwid = sm.children[0].children[1].children[2].children[0]
+        refwid = sm.children[0].children[0].children[2]
         timereqw = refwid.children[0]
         typew = refwid.children[1]
-        dobyw = refwid.children[2]
-        namew = refwid.children[3]
+        namew = refwid.children[2]
+        dobyw = refwid.children[3]
 
-        timereqw.text = 'modded timereqw'
+        # 0123456789
+        # 2016-03-31
+        yearstr = int(str(nw.date)[0:4])
+        monthstr = int(str(nw.date)[5:7])
+        daystr = int(str(nw.date)[8:10])
+        SubmitBtn.datevar = arrow.get(yearstr, monthstr, daystr)
+
+        timereq = 86400  # 1 day, in seconds
+        timereqw.text = str(timereq)
         typew.text = 'modded typew'
-        dobyw.text = str(nw.date)
-        namew.text = 'modded namew'
+        dobyw.text = 'Enter info for new job on ' + str(nw.date)
+        namew.text = 'modded namew2'
+        
 
 class NWLabel(Label):
     def on_touch_down(self, touch):
@@ -305,8 +369,11 @@ class EWB(Button):
     screeninput = ObjectProperty()
 
     def on_release(self):
-        pass
+        # print(self.parent.parent.parent)
+        screeninput = self.parent.parent.parent.parent
+        screeninput.current = '2'
         # self.parent.parent.parent.parent.current = '2'
+        print(screeninput.current)
         # print(self.parent.parent.parent)
 
 
@@ -372,6 +439,7 @@ class DayBtn(Button):  # day button class
             mw = int(self.width*0.8)
         mh = mw
         rad = int(mw*0.2027)
+        print('drew a rounded rect at ' + str(self.text))
         insgrp.add(RoundedRectangle(size=(mw,
                                  mh),
                                  pos=(self.x+self.width/2-mw/2,
@@ -470,22 +538,26 @@ class CalApp(App):
     calmain.size = (Window.width, Window.height * 0.95)
     calmain.pos = (0, Window.height - Window.height * 0.95)
 
+    asdf = 1
+
     def delayed(self, dt):
         self.calmain.makemarks()
-    def asd2(self, *args):
-        self.calmain.makemarks()
+
+    def asd2(self):
+        print(self.asdf)
+        # self.sm = '2'
+        # print(str(sm))
+        # self.calmain.makemars()
 
     def build(self):
         sm = ScreenManager()
         fs = FirstScreen(name='1')
         ss = SecondScreen(name='2')
-        tbw = TBWidget(lab="WHAT")
-        ss.add_widget(tbw)
 
         flo = FloatLayout()
         blo = BoxLayout(orientation='vertical')
         blo.add_widget(self.calmain)
-        ewb = EWB(text='reroll colours', screeninput=sm, size_hint=(1, .45), on_release=(self.asd2))
+        ewb = EWB(text='button', screeninput=sm, size_hint=(1, .45))
         # ewb.size = (100,100) # why do i need this??
         blo.add_widget(ewb)
 
@@ -494,19 +566,15 @@ class CalApp(App):
 
         sm.add_widget(fs)
         sm.add_widget(ss)
+        sm.current = '1'
 
         with self.calmain.canvas:
             Rectangle(pos=(0, 0), size=Window.size)
 
         self.calmain.kivycalpop()
-        # calmain.makemarks()
         Clock.schedule_once(self.delayed, 1)  # TODO: refine delay
         return sm
 
-# dictionary of days with jobs
-dodwj = defaultdict(dict)
-# dictionary of days with jobs
-daydict = defaultdict(dict)
 
 
 class Database:
@@ -699,17 +767,23 @@ def ntf2(self, arwin):  # new test function
     spawnnw(self, jobitems, arwin)
 
 
-def refreshjoblist(joblist):
+def refreshjoblist(joblist, doBylist, dodwj, daydict):
     # pull data from sql db
     q = """
     SELECT * from wt;
     """
     dbdata = db.query(q)
 
+
     # delete all items in joblist 
     del joblist[0:len(joblist)]
+    del doBylist[0:len(doBylist)]
+    dodwj.clear()
+    daydict.clear()
+
     # add items from sql db to joblist
     for item in dbdata:
+        print(item)
         joblist.append(Job(item[0], arrow.get(item[2]),
                        item[1], item[3]))
 
@@ -744,14 +818,18 @@ def refreshjoblist(joblist):
 
 if __name__ == "__main__":
     db = Database()  # custom database class (mysql)
-    reset = False
+    reset = True
     # flag for rest/debug etc
 
     if (reset):
         initdbclass()
+    # dictionary of days with jobs
+    dodwj = defaultdict(dict)
+    # dictionary of days with jobs
+    daydict = defaultdict(dict)
     joblist = []
     doBylist = []
-    refreshjoblist(joblist)
+    refreshjoblist(joblist, doBylist, dodwj, daydict)
 
 
     # db.additem('wt', 'newdbitem', '3600')
