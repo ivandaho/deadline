@@ -66,12 +66,6 @@ Builder.load_string("""
                 id: txt_d
                 text: str(self.parent.strtimereq)
                 size:self.size
-                canvas:
-                    Color:
-                        rgba:1,0,0,.3
-                    Rectangle:
-                        size:self.size
-                        pos:self.pos
 
         SubmitBtn:
             size_hint: (1, .25)
@@ -166,11 +160,13 @@ class CalGame(GridLayout):  # main class
         gridindex = dofotm() + 1
         currday = 1
         y = 0
-        year = arrow.get().year
+        yr = arrow.get().year
         mnth = arrow.get().month
 
         while (currday <= ditm()):
-            arwdate = arrow.get(year, mnth, currday).date()
+            arwdate = arrow.get(yr, mnth, currday, 0,0,0,0, tz.tzlocal())
+            arwdate = arwdate.date()
+            # arwdate = arrow.get(yr, mnth, currday).date()
 
             if (y < gridindex):
                 # add empty widgets to fill grid
@@ -202,7 +198,6 @@ class CalGame(GridLayout):  # main class
                 # child is DayBtn
                 # contains datetime.datetime in input
                 for event in dodwj[child.arwin]:
-                    print('detected event. calling drawnew')
                     # event is i number, doesnt contain job data
                     # job data is in dodwj[child.input][event]
 
@@ -224,7 +219,7 @@ def getspace(self):
     year = arrow.get().year
     mnth = arrow.get().month
     while (currday <= ditmvar):
-        datetocheck = arrow.get(year, mnth, currday)
+        datetocheck = arrow.get(year, mnth, currday,0,0,0,0,tz.tzlocal())
         jobstodo = []
 
         for job in joblist:
@@ -247,11 +242,15 @@ def getspace(self):
             daydict[datetocheck.date()] = jobstodo 
 
         x = 1
+        tj = 0
         for item in daydict[arrow.get(year, mnth, currday).date()]:
+            tj = tj + 1
             if (item.line == 0):
                 item.line = x
+            # print(str(item.name) + ' jobline = ' + str(item.line))
             x = x + 1
 
+        # print('total jobs on ' + str(currday) + ' = ' + str(tj))
         currday = currday + 1
 
         
@@ -278,13 +277,69 @@ class SubmitBtn(Button):
 
     inf = ObjectProperty(None)
     datevar = arrow.get()
+
+    def calctimereq(self, source):
+        # set defaults
+        d = 0
+        h = 0
+        m = 0
+
+        if (source.find(':') != -1):
+            # if found ':'
+            hpos = source.find(':')
+            h = source[0:hpos]
+            m = source[hpos+1:len(source)]
+
+        if (source.find('d') != -1):
+            # if found 'd'
+            dpos = source.find('d')
+            x = dpos - 1
+            while(x >= 0):
+                if (source[x].isdigit()):
+                    dstart = x
+                    x = x - 1
+                else: 
+                    break
+
+            d = source[dstart:dpos]
+
+        if (source.find('h') != -1):
+            # if found 'h'
+            hpos = source.find('h')
+            x = hpos - 1
+            while(x >= 0):
+                if (source[x].isdigit()):
+                    hstart = x
+                    x = x - 1
+                else: 
+                    break
+
+            h = source[hstart:hpos]
+        
+        if (source.find('m') != -1):
+            # if found 'm'
+            mpos = source.find('m')
+            x = mpos - 1
+            while(x >= 0):
+                if (source[x].isdigit()):
+                    mstart = x
+                    x = x - 1
+                else: 
+                    break
+
+            m = source[mstart:mpos]
+
+        tt = int(d) * 86400 + int(h) * 3600 + int(m) * 60
+        return str(tt)
+        
+
     def on_release(self):
         # print(self.parent.inf.txt_a)
         # self.parent.children[2].children[0].comp()
 
         # date = self.parent.children[2].children[1].text
         name = self.parent.children[2].children[2].text
-        timereq = self.parent.children[2].children[0].text
+        timereq = self.calctimereq(self.parent.children[2].children[0].text)
         datestr = self.datevar.format('YYYY/MM/DD HH:mm:ss')
         # datestr = '2016/03/25 08:00:00' # event.begin.format('YYYY/MM/DD HH:mm:ss')
         #jobtype = self.parent.children[2].children[0].children[1].text timereq = self.parent.children[2].children[0].children[0].text
@@ -302,8 +357,8 @@ class SubmitBtn(Button):
 
         refreshjoblist(joblist, doBylist, dodwj, daydict)
         self.parent.parent.parent.current = '1'
-        print(self.parent.parent.parent.children[0].children[0].children[1].children[1])
-        self.parent.parent.parent.children[0].children[0].children[1].children[1].makemarks()
+        self.parent.parent.parent.children[0].children[0].remove_widget(nw)
+        self.parent.parent.parent.children[0].children[0].children[0].children[1].makemarks()
 
 class AddBtn(Button):
     def on_release(self):
@@ -332,6 +387,7 @@ class AddBtn(Button):
 
 class NWLabel(Label):
     def on_touch_down(self, touch):
+        print(self.parent.parent.parent.parent)
         if self.collide_point(*touch.pos):
             # if clicked on box. for later
             pass
@@ -373,12 +429,10 @@ class EWB(Button):
     screeninput = ObjectProperty()
 
     def on_release(self):
-        # print(self.parent.parent.parent)
         screeninput = self.parent.parent.parent.parent
         screeninput.current = '2'
         # self.parent.parent.parent.parent.current = '2'
         print(screeninput.current)
-        # print(self.parent.parent.parent)
 
 
 class EW(Widget):  # empty widget class
@@ -411,6 +465,7 @@ class DayBtn(Button):  # day button class
                              self.y + self.height/2 - y/2)))
 
     def drawnew(self, job, insgrp):
+        print(str(job.name) + ' ' + str(job.line))
         # TODO: pass into function better, maybe dont need job
         #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
@@ -443,7 +498,6 @@ class DayBtn(Button):  # day button class
             mw = int(self.width*0.8)
         mh = mw
         rad = int(mw*0.2027)
-        print('drew a rounded rect at ' + str(self.text))
         insgrp.add(RoundedRectangle(size=(mw,
                                  mh),
                                  pos=(self.x+self.width/2-mw/2,
@@ -468,12 +522,13 @@ class DayBtn(Button):  # day button class
         topbar = 0
         iteration = 3
         btmbar = 0
-        totalspacing = int(mw * 0.03)
+        # whats going on? it works tho
+        totalspacing = mw * 0.03
         spacing = totalspacing + totalspacing
-        bh = int((mw-totalspacing)/3)  # bar height
+        bh = (mw-spacing-spacing)/3.  # bar height
 
         ##################
-        h1 = self.y+self.height/2-mh/2 # make btm flush with main indicator
+        # h1 = self.y+self.height/2-mh/2 # make btm flush with main indicator
         jlos = bh + spacing  # job line offset
         bos = self.height/2-mh/2  # base offset
 
@@ -525,7 +580,9 @@ class DayBtn(Button):  # day button class
             insgrp.add(Rectangle(size=(btmbar+fillx,
                                     bh),
                               pos=(self.x-btmbar,
-                                   h1)))
+                                   self.y + bos +
+                                   (job.line - 1) * jlos)))
+                                   # h1)))
 
 
 class FirstScreen(Screen):
@@ -673,7 +730,7 @@ def initdbclass():
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('laundry','86400',
+    INSERT INTO wt VALUES('laundry','186400',
                           STR_TO_DATE('2016/03/18 20:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
@@ -706,6 +763,14 @@ def initdbclass():
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
+
+    q = """
+    INSERT INTO wt VALUES('test new on 25th','86400',
+                          STR_TO_DATE('2016/03/25 08:00:00',
+                                      '%Y/%m/%d %T'), NULL);
+    """
+    db.query(q)
+
     icstosql()
     db.cnx.commit()
 
