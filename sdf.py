@@ -1,5 +1,6 @@
 import datetime
 import mysql.connector
+from dateutil import tz
 
 from collections import defaultdict
 
@@ -194,7 +195,7 @@ class CalGame(GridLayout):  # main class
         self.ig2.clear()
         for child in self.children:
             if (isinstance(child, DayBtn)):
-                if (child.arwin == arrow.get().date()):
+                if (child.arwin == arrow.get(tz.tzlocal()).date()):
                 # draw today's marker
                     child.drawtodaymarker(self.ig1)
                 # if event(s) found on this daybtn
@@ -333,8 +334,9 @@ class NWLabel(Label):
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
             # if clicked on box. for later
-            self.parent.parent.parent.remove_widget(nw)
-            return True  # eats touch
+            pass
+        self.parent.parent.parent.remove_widget(nw)
+        return True  # eats touch
 
 
 
@@ -349,9 +351,11 @@ class NW(StackLayout):
             self.lbltext = ''
             for item in jobitems:
                 self.lbltext = self.lbltext + str(item.name) + \
-                        ' due on ' + str(item.doBy.format('M/D/YY HH:mm')) + \
+                        ' due on ' + \
+                        str(item.doBy) + \
                         ' (' + str(item.doBy.humanize()) + \
                         ')' + '\n'
+                        # str(item.doBy.format('M/D/YY HH:mm')) + \
 
 
 
@@ -784,7 +788,7 @@ def refreshjoblist(joblist, doBylist, dodwj, daydict):
     # add items from sql db to joblist
     for item in dbdata:
         print(item)
-        joblist.append(Job(item[0], arrow.get(item[2]),
+        joblist.append(Job(item[0], arrow.get(item[2], tz.tzlocal()),
                        item[1], item[3]))
 
         doBylist.append(arrow.get(item[2]).date())
