@@ -101,8 +101,47 @@ Builder.load_string("""
     #size_hint:(None,None)
     valign: 'top'
 
+<DayDisplay>:
+    DayLabel:
+        text:'[color=ffffff]SUN[/color]'
+    DayLabel:
+        text:'[color=ffffff]MON[/color]'
+    DayLabel:
+        text:'[color=ffffff]TUE[/color]'
+    DayLabel:
+        text:'[color=ffffff]WED[/color]'
+    DayLabel:
+        text:'[color=ffffff]THU[/color]'
+    DayLabel:
+        text:'[color=ffffff]FRI[/color]'
+    DayLabel:
+        text:'[color=ffffff]SAT[/color]'
+
+<DayLabel>:
+    markup: True
+    halign:'center'
+    valign:'middle'
+    canvas.before:
+        Color:
+            rgba:1,1,1,1
+        Rectangle:
+            pos:(self.pos)
+            size:(self.size)
+
+        Color:
+            rgba:0.4,0.4,0.4,1
+        Rectangle:
+            pos:(self.x+1, self.y)
+            size:(self.width-2,self.height)
+    canvas:
+        Color:
+            rgba:1,0,0,0.0
+    text_size: self.size
+
 """)
 
+class NL(Label):
+    pass
 
 def checkl():
     if (Window.width > Window.height):
@@ -117,6 +156,8 @@ def rgb256to1(x, y, z):
     z = 1 / 256 * z
     return x, y, z, 0.5
 
+class BtnArea(GridLayout):
+    pass
 
 class CalGame(GridLayout):  # main class
     cl = []
@@ -152,10 +193,25 @@ class CalGame(GridLayout):  # main class
     cl.append(rgb256to1(234, 194, 81))
     seed = 20
 
+    ig0 = InstructionGroup() # white background
     ig1 = InstructionGroup()
     ig2 = InstructionGroup()
+    ig3 = InstructionGroup()
+    ig0.add(Color(1,1,1,1))
+    ig0.add(Rectangle(size=(Window.width,Window.height * 0.971)))
+    # TODO: doesn't fill completely accurately, get better measurements
 
     def kivycalpop(self):
+        # for refresh, don't really the next 2 lines need because
+        # it will happen later, but the later thing is scheduled
+        # 0.01 seconds later because it requires creation. not sure
+
+        self.canvas.remove(self.ig0)
+        self.canvas.add(self.ig0)
+
+        # remove widgets for refresh
+        for x in range (0,len(self.children)):
+            self.remove_widget(self.children[0])
         # this is for the calendar buttons only
         gridindex = dofotm() + 1
         currday = 1
@@ -164,6 +220,7 @@ class CalGame(GridLayout):  # main class
         mnth = arrow.get().month
 
         while (currday <= ditm()):
+            #TODO: change to SPECIFIC MONTH for refresh
             arwdate = arrow.get(yr, mnth, currday, 0,0,0,0, tz.tzlocal())
             arwdate = arwdate.date()
             # arwdate = arrow.get(yr, mnth, currday).date()
@@ -178,17 +235,19 @@ class CalGame(GridLayout):  # main class
                 self.add_widget(DayBtn(text=str(currday), arwin=arwdate))
                 currday = currday + 1
 
-    def rm(self, insgrp1, insgrp2):
-        self.canvas.remove(insgrp1)
-        insgrp2.clear()
+    def rm(self, insgrp):
+        self.canvas.remove(insgrp)
+        insgrp.clear()
         pass
 
     def makemarks(self):
         print('MADE MARKS!')
-        self.rm(self.ig1, self.ig2)
+        self.rm(self.ig1) # removes the insgrp from canvas
+        self.rm(self.ig2)
         getspace(self)
-        self.ig1.clear()
+        self.ig1.clear() # clears the insgrp
         self.ig2.clear()
+
         for child in self.children:
             if (isinstance(child, DayBtn)):
                 if (child.arwin == arrow.get(tz.tzlocal()).date()):
@@ -204,9 +263,8 @@ class CalGame(GridLayout):  # main class
                     # add instructon for each event
                     child.drawnew(dodwj[child.arwin][event], self.ig2)
 
-        self.canvas.add(self.ig1) # 2 is job related markers
+        self.canvas.add(self.ig1) # 2 is daymarker
         self.canvas.add(self.ig2) # 2 is job related markers
-
 
 
 def getspace(self):
@@ -235,15 +293,27 @@ def getspace(self):
 
             # if the day is a working day
             # x > y means x is more recent than y
+
+            # datetocheck.floor('day') to get a date that is 00:00
             if (datetocheck.floor('day') <= dobyarrow):
+                # if there is a job due after this day's 0:00
+
                 if (datetocheck.floor('day') >= mswd):
                     jobstodo.append(job)
+
+                if (datetocheck.floor('day').replace(days=1) >= dobyarrow):
+                    if job in jobstodo:
+                        jobstodo.remove(job)
+                    jobstodo.append(job)
+                    pass
+
 
             daydict[datetocheck.date()] = jobstodo 
 
         x = 1
         tj = 0
-        for item in daydict[arrow.get(year, mnth, currday).date()]:
+        for item in daydict[datetocheck.date()]:
+            # print('ADSFF ' + str(item))
             tj = tj + 1
             if (item.line == 0):
                 item.line = x
@@ -427,13 +497,24 @@ def spawnnw(self, jobitems, arwin):
 
 class EWB(Button):
     screeninput = ObjectProperty()
+    def delayed(self, dt):
+        self.parent.parent.children[1].makemarks()
 
     def on_release(self):
-        screeninput = self.parent.parent.parent.parent
-        screeninput.current = '2'
+        self.parent.parent.children[1].kivycalpop()
+        Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
+        # screeninput = self.parent.parent.parent.parent
+        # self.parent.children[1].makemarks()
+        # screeninput.current = '2'
         # self.parent.parent.parent.parent.current = '2'
-        print(screeninput.current)
+        # print(screeninput.current)
 
+
+class DayLabel(Label):  # empty widget class
+    pass
+
+class DayDisplay(BoxLayout):  # empty widget class
+    pass
 
 class EW(Widget):  # empty widget class
         pass
@@ -444,7 +525,7 @@ class TBWidget(Widget):
 
 class DayBtn(Button):  # day button class
     arwin = ObjectProperty()
-    background_color = (1, 1, 1, 1)
+    #background_color = (1, 1, 1, 1) ????? why did I add this before
     text_size = (int(Window.width*0.7*0.15), int(Window.height*0.7*0.13))
     halign = 'right'
     valign = 'top'
@@ -491,7 +572,8 @@ class DayBtn(Button):  # day button class
                       self.parent.cl[ri][1],
                       self.parent.cl[ri][2],))
         # insgrp.add(Color(job.clr))
-        # basic marker to indicate doBy
+
+        # roundedrect marker to indicate doBy
         if(checkl()):
             mw = int(self.height*0.8)
         else:
@@ -503,9 +585,10 @@ class DayBtn(Button):  # day button class
                                  pos=(self.x+self.width/2-mw/2,
                                       self.y+self.height/2-mh/2),
                                  radius=(rad, rad)))
+
         # calculate timereq indicator stuff...
-        secwidth = self.parent.width/7./86400.  # pixels per second
-        # timeReq width
+        secwidth = self.parent.width/7./86400.  # pixels each second
+        # timeReq width, full length required to visualize timereq
         trw = job.timeReq*secwidth
 
         # 0 is sunday, 6 is saturday
@@ -574,15 +657,31 @@ class DayBtn(Button):  # day button class
                       self.parent.cl[ri][1],
                       self.parent.cl[ri][2],))
 
-        if (job.timeReq > 0):  # if job is an event
+        if (job.timeReq > 0):  # if job requires time
             # TODO: timeReq can be used for events? change this to
             #       use a var like jobType or something
+            if (job.doBy.floor('day') <= arrow.get(job.doBy.timestamp - job.timeReq)):
+                # TODO: figure out why I wrote this, too tired for now
+                fillx = 0
+                xpos = self.center_x-btmbar
+                # dont fill
+            else:
+                xpos = self.x-btmbar
+            
             insgrp.add(Rectangle(size=(btmbar+fillx,
-                                    bh),
-                              pos=(self.x-btmbar,
-                                   self.y + bos +
-                                   (job.line - 1) * jlos)))
+                                        bh),
+                                  pos=(xpos,
+                                       self.y + bos +
+                                       (job.line - 1) * jlos)))
                                    # h1)))
+
+            # old method before March 16
+            #insgrp.add(Rectangle(size=(btmbar+fillx, 
+            #                        bh),
+            #                  pos=(self.x-btmbar,
+            #                       self.y + bos +
+            #                       (job.line - 1) * jlos)))
+            #                       # h1)))
 
 
 class FirstScreen(Screen):
@@ -594,6 +693,9 @@ class SecondScreen(Screen):
 
 
 class CalApp(App):
+    # top info area
+    dayinfo = DayDisplay(size_hint=(1,0.03))
+        
     # main window area
     calmain = CalGame(cols=7, size_hint=(1, .55))
     calmain.size = (Window.width, Window.height * 0.95)
@@ -617,10 +719,17 @@ class CalApp(App):
 
         flo = FloatLayout()
         blo = BoxLayout(orientation='vertical')
+        blo.add_widget(self.dayinfo)
         blo.add_widget(self.calmain)
-        ewb = EWB(text='button', screeninput=sm, size_hint=(1, .45))
+        ewb = EWB(text='btn0', screeninput=sm,size_hint=(1,.45))
+        ewb1 = EWB(text='btn1', screeninput=sm)
+        ewb2 = EWB(text='btn2', screeninput=sm)
+        eb = BtnArea(cols=3, size_hint=(1, .45))
         # ewb.size = (100,100) # why do i need this??
-        blo.add_widget(ewb)
+        blo.add_widget(eb)
+        eb.add_widget(ewb)
+        eb.add_widget(ewb1)
+        eb.add_widget(ewb2)
 
         flo.add_widget(blo)
         fs.add_widget(flo)
@@ -729,9 +838,10 @@ def initdbclass():
     q = "DELETE FROM wt"  # clear table before doing anything
     db.query(q)
 
+    # weird things happen when the time has weird numbers
     q = """
-    INSERT INTO wt VALUES('laundry','186400',
-                          STR_TO_DATE('2016/03/18 20:46:43',
+    INSERT INTO wt VALUES('laundry','86400',
+                          STR_TO_DATE('2016/03/18 20:01:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
