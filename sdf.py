@@ -38,10 +38,7 @@ Builder.load_string("""
 <SecondScreen>:
     BoxLayout:
         orientation: 'vertical'
-        inf: inf
         InputFields:
-            id: inf
-            txt_a: txt_a
 
             name: 'NAME'
             doby: 'DOBY'
@@ -55,15 +52,12 @@ Builder.load_string("""
             Label:
                 text: 'choose date first'
             TextInput:
-                id: txt_a
                 text: str(self.parent.strname)
                 size:self.size
             TextInput:
-                id: txt_c
                 text: str(self.parent.strtype)
                 size:self.size
             TextInput:
-                id: txt_d
                 text: str(self.parent.strtimereq)
                 size:self.size
 
@@ -179,7 +173,7 @@ def rgb256to1(x, y, z):
     return x, y, z, 0.5
 
 class BtnArea(GridLayout):
-    date = ObjectProperty()
+    pass
 
 class CalGame(GridLayout):  # main class
     cl = []
@@ -221,7 +215,7 @@ class CalGame(GridLayout):  # main class
     ig2 = InstructionGroup()
     ig3 = InstructionGroup()
     ig0.add(Color(1,1,1,1))
-    ig0.add(Rectangle(size=(Window.width,Window.height * 0.90)))
+    ig0.add(Rectangle(size=(Window.width,Window.height * 0.89)))
     # TODO: doesn't fill completely accurately, get better measurements
 
     def kivycalpop(self, yr, mnth):
@@ -265,7 +259,6 @@ class CalGame(GridLayout):  # main class
         pass
 
     def makemarks(self, yr, mnth):
-        print('MADE MARKS!')
         self.rm(self.ig1) # removes the insgrp from canvas
         self.rm(self.ig2)
         getspace(self, yr, mnth)
@@ -289,6 +282,7 @@ class CalGame(GridLayout):  # main class
 
         self.canvas.add(self.ig1) # 2 is daymarker
         self.canvas.add(self.ig2) # 2 is job related markers
+        print('MADE MARKS!')
 
 
 def getspace(self, yr, mnth):
@@ -336,14 +330,11 @@ def getspace(self, yr, mnth):
         x = 1
         tj = 0
         for item in daydict[datetocheck.date()]:
-            # print('ADSFF ' + str(item))
             tj = tj + 1
             if (item.line == 0):
                 item.line = x
-            # print(str(item.name) + ' jobline = ' + str(item.line))
             x = x + 1
 
-        # print('total jobs on ' + str(currday) + ' = ' + str(tj))
         currday = currday + 1
 
         
@@ -355,11 +346,6 @@ class InputFields(BoxLayout):
     strtype = 'enter type'
     strtimereq = 'enter timereq in seconds'
 
-    txt_a = ObjectProperty(None)
-    
-    def comp(self):
-        print(self.txt_a.text)
-
 
 class BackBtn(Button):
     def on_release(self):
@@ -368,7 +354,6 @@ class BackBtn(Button):
 
 class SubmitBtn(Button):
 
-    inf = ObjectProperty(None)
     datevar = arrow.get()
 
     def calctimereq(self, source):
@@ -427,10 +412,7 @@ class SubmitBtn(Button):
         
 
     def on_release(self):
-        # print(self.parent.inf.txt_a)
-        # self.parent.children[2].children[0].comp()
 
-        # date = self.parent.children[2].children[1].text
         name = self.parent.children[2].children[2].text
         timereq = self.calctimereq(self.parent.children[2].children[0].text)
         datestr = self.datevar.format('YYYY/MM/DD HH:mm:ss')
@@ -449,9 +431,15 @@ class SubmitBtn(Button):
         db.cnx.commit()
 
         refreshjoblist(joblist, doBylist, dodwj, daydict)
-        self.parent.parent.parent.current = '1'
-        self.parent.parent.parent.children[0].children[0].remove_widget(nw)
-        self.parent.parent.parent.children[0].children[0].children[0].children[1].makemarks()
+
+        sm = self.parent.parent.parent
+        sm.current = '1'
+
+        refwid = sm.children[0].children[0]
+        refwid.remove_widget(nw)
+
+        dater = refwid.children[0].children[1].dater
+        refwid.children[0].children[1].makemarks(dater.year, dater.month)
 
 class AddBtn(Button):
     def on_release(self):
@@ -530,7 +518,7 @@ class EWB(Button):
     def getshift(self):
         self.parent.parent.children[1].dater = self.parent.parent.children[1].dater.replace(months=+self.shift)
    
-    screeninput = ObjectProperty()
+    sm = ObjectProperty()
     def delayed(self, dt):
         self.parent.parent.children[1].makemarks(self.yr, self.mnth)
 
@@ -539,11 +527,11 @@ class EWB(Button):
         self.dates()
         self.parent.parent.children[1].kivycalpop(self.yr, self.mnth)
         Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
-        # screeninput = self.parent.parent.parent.parent
+        # sm = self.parent.parent.parent.parent
         # self.parent.children[1].makemarks()
-        # screeninput.current = '2'
+        # sm.current = '2'
         # self.parent.parent.parent.parent.current = '2'
-        # print(screeninput.current)
+        # print(sm.current)
 
 
 class DayLabel(Label):  # empty widget class
@@ -552,7 +540,6 @@ class DayLabel(Label):  # empty widget class
 class MonthDisplay(BoxLayout):
     md = ObjectProperty(None)
     mnthtext = StringProperty()
-    mnthtext = 'test'
 
 class DayDisplay(BoxLayout):
     pass
@@ -587,7 +574,6 @@ class DayBtn(Button):  # day button class
                              self.y + self.height/2 - y/2)))
 
     def drawnew(self, job, insgrp):
-        print(str(job.name) + ' ' + str(job.line))
         # TODO: pass into function better, maybe dont need job
         #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
@@ -607,7 +593,6 @@ class DayBtn(Button):  # day button class
 
         if (job.clr == None):
             # dont reroll colors if already have  color
-            print('job clr unset')
             job.clr = self.parent.cl[ri][0],\
                 self.parent.cl[ri][1],\
                 self.parent.cl[ri][2]
@@ -746,8 +731,6 @@ class CalApp(App):
         
     # main window area
     calmain = CalGame(cols=7, size_hint=(1, .55), dater=date)
-    calmain.size = (Window.width, Window.height * 0.95)
-    calmain.pos = (0, Window.height - Window.height * 0.95)
 
     def delayed(self, dt):
         self.calmain.makemarks(self.cy, self.cm)
@@ -765,10 +748,10 @@ class CalApp(App):
         curryr = arrow.get(tz.tzlocal()).year
         currmnth = arrow.get(tz.tzlocal()).month
 
-        ewb = EWB(text='btn0', screeninput=sm, shift=-1)
-        ewb1 = EWB(text='btn0', screeninput=sm, shift=0)
-        ewb2 = EWB(text='btn0', screeninput=sm, shift=1)
-        eb = BtnArea(cols=3, size_hint=(1, .45), date=self.date)
+        ewb = EWB(text='<<', sm=sm, shift=-1)
+        ewb1 = EWB(text='redraw', sm=sm, shift=0)
+        ewb2 = EWB(text='>>', sm=sm, shift=1)
+        eb = BtnArea(cols=3, size_hint=(1, .34))
         # ewb.size = (100,100) # why do i need this??
         blo.add_widget(eb)
         eb.add_widget(ewb)
