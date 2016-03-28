@@ -216,7 +216,6 @@ class CalGame(GridLayout):  # main class
     ig3 = InstructionGroup()
     ig0.add(Color(1,1,1,1))
     ig0.add(Rectangle(size=(Window.width,Window.height * 0.89)))
-    # TODO: doesn't fill completely accurately, get better measurements
 
     def kivycalpop(self, yr, mnth):
         self.parent.children[3].md.text = str(self.dater.month) + '/' + str(self.dater.year)
@@ -238,7 +237,6 @@ class CalGame(GridLayout):  # main class
         # mnth = arrow.get(yr, mnth, 1).month
 
         while (currday <= ditm_specific(yr, mnth)):
-            #TODO: change to SPECIFIC MONTH for refresh
             arwdate = arrow.get(yr, mnth, currday, 0,0,0,0, tz.tzlocal())
             arwdate = arwdate.date()
             # arwdate = arrow.get(yr, mnth, currday).date()
@@ -270,15 +268,31 @@ class CalGame(GridLayout):  # main class
                 if (child.arwin == arrow.get(tz.tzlocal()).date()):
                 # draw today's marker
                     child.drawtodaymarker(self.ig1)
-                # if event(s) found on this daybtn
-                # child is DayBtn
-                # contains datetime.datetime in input
-                for event in dodwj[child.arwin]:
-                    # event is i number, doesnt contain job data
-                    # job data is in dodwj[child.input][event]
 
-                    # add instructon for each event
-                    child.drawnew(dodwj[child.arwin][event], self.ig2)
+########## old draw method based on event ##################################
+#                 # if event(s) found on this daybtn
+#                 # child is DayBtn
+#                 # contains datetime.datetime in input
+#                 for event in dodwj[child.arwin]:
+#                     # event is i number, doesnt contain job data
+#                     # job data is in dodwj[child.input][event]
+# 
+#                     # add instructon for each event
+#                     child.drawnew(dodwj[child.arwin][event], self.ig2)
+# 
+################################ new draw method ###########################
+
+                if (len(daydict[child.arwin]) > 0):
+                    ji = []
+                    for item in daydict[child.arwin]:
+                        ji.append(item)
+                else:
+                    ji = []
+
+                for item in ji:
+                    child.drawnewer(item, self.ig2)
+                    print('TEST NEW FUNC DRAW' + str(item))
+
 
         self.canvas.add(self.ig1) # 2 is daymarker
         self.canvas.add(self.ig2) # 2 is job related markers
@@ -510,7 +524,6 @@ class EWB(Button):
     shift = NumericProperty()
     yr = NumericProperty()
     mnth = NumericProperty()
-    # TODO: not same instance
     def dates(self):
         self.yr = self.parent.parent.children[1].dater.year
         self.mnth = self.parent.parent.children[1].dater.month
@@ -573,9 +586,57 @@ class DayBtn(Button):  # day button class
                         pos=(self.x + self.width/2 - x/2,
                              self.y + self.height/2 - y/2)))
 
+    def drawnewer(self, job, insgrp):
+        ri = self.parent.seed
+        self.parent.seed = self.parent.seed + 1
+        if (self.parent.seed == len(self.parent.cl)-1):
+            self.parent.seed = 0
+
+        if(checkl()):
+            mw = int(self.height*0.8)
+        else:
+            mw = int(self.width*0.8)
+        mh = mw
+        totalspacing = mw * 0.03
+        spacing = totalspacing + totalspacing
+        bh = (mw-spacing-spacing)/3.  # bar height
+        bw = self.width
+        bos = self.height/2-mh/2  # base offset
+        jlos = bh + spacing  # job line offset
+
+        if (job.clr == None):
+            # dont reroll colors if already have color
+            job.clr = self.parent.cl[ri][0],\
+                self.parent.cl[ri][1],\
+                self.parent.cl[ri][2]
+
+        insgrp.add(Color(job.clr[0],job.clr[1],job.clr[2]))
+
+        if (job.doBy.date() == self.arwin):
+            rad = int(mw*0.2027)
+            insgrp.add(RoundedRectangle(size=(mw,
+                                     mh),
+                                     pos=(self.x+self.width/2-mw/2,
+                                          self.y+self.height/2-mh/2),
+                                     radius=(rad, rad)))
+
+            bw = self.width*.5 # so that the last cell does not overlap
+            if (job.timeReq == 0):
+                # TODO: calculate the FIRST cell width, based on the time needed to complete and mswd or smoething.
+                b = 0
+
+
+
+        clean = False
+        if not (clean):
+            insgrp.add(Rectangle(size=(bw,
+                                    bh),
+                              pos=(self.x,
+                                   self.y + bos +
+                                   (job.line - 1) * jlos)))
+
+        
     def drawnew(self, job, insgrp):
-        # TODO: pass into function better, maybe dont need job
-        #       datetime.datetime in DayBtn
         # doesnt actually draw but only add instrucions.
         # ############### COLOR STUFF ############## #
         # 30 random colors from iwanthue
