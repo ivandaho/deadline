@@ -213,6 +213,7 @@ class CalGame(GridLayout):  # main class
     ig0 = InstructionGroup() # white background
     ig1 = InstructionGroup()
     ig2 = InstructionGroup()
+    ig2alt = InstructionGroup()
     ig3 = InstructionGroup()
     ig0.add(Color(1,1,1,1))
     ig0.add(Rectangle(size=(Window.width,Window.height * 0.89)))
@@ -259,8 +260,10 @@ class CalGame(GridLayout):  # main class
     def makemarks(self, yr, mnth):
         self.rm(self.ig1) # removes the insgrp from canvas
         self.rm(self.ig2)
+        self.rm(self.ig2alt)
         getspace(self, yr, mnth)
         self.ig1.clear() # clears the insgrp
+        self.ig2alt.clear()
         self.ig2.clear()
 
         for child in self.children:
@@ -290,12 +293,12 @@ class CalGame(GridLayout):  # main class
                     ji = []
 
                 for item in ji:
-                    child.drawnewer(item, self.ig2)
-                    print('TEST NEW FUNC DRAW' + str(item))
+                    child.drawnewer(item, self.ig2, self.ig2alt)
 
 
         self.canvas.add(self.ig1) # 2 is daymarker
         self.canvas.add(self.ig2) # 2 is job related markers
+        self.canvas.add(self.ig2alt) # 2 is job related markers
         print('MADE MARKS!')
 
 
@@ -586,7 +589,7 @@ class DayBtn(Button):  # day button class
                         pos=(self.x + self.width/2 - x/2,
                              self.y + self.height/2 - y/2)))
 
-    def drawnewer(self, job, insgrp):
+    def drawnewer(self, job, insgrp, insgrpalt):
         ri = self.parent.seed
         self.parent.seed = self.parent.seed + 1
         if (self.parent.seed == len(self.parent.cl)-1):
@@ -611,27 +614,39 @@ class DayBtn(Button):  # day button class
                 self.parent.cl[ri][2]
 
         insgrp.add(Color(job.clr[0],job.clr[1],job.clr[2]))
+        insgrpalt.add(Color(job.clr[0],job.clr[1],job.clr[2]))
+
+        xos = 0
+        mswd = arrow.get(job.doBy.timestamp - job.timeReq)
 
         if (job.doBy.date() == self.arwin):
+            # if the date due is on current day 
             rad = int(mw*0.2027)
-            insgrp.add(RoundedRectangle(size=(mw,
+            insgrpalt.add(RoundedRectangle(size=(mw,
                                      mh),
                                      pos=(self.x+self.width/2-mw/2,
                                           self.y+self.height/2-mh/2),
                                      radius=(rad, rad)))
 
             bw = self.width*.5 # so that the last cell does not overlap
-            if (job.timeReq == 0):
-                # TODO: calculate the FIRST cell width, based on the time needed to complete and mswd or smoething.
-                b = 0
 
+            if (job.timeReq == 0):
+                bw = 0
+
+
+        elif (mswd.date() == self.arwin):
+            print(mswd)
+            frac = mswd.timestamp - mswd.floor('day').timestamp
+            bw = (frac/86400.*self.width)
+            print(bw)
+            xos = self.width - bw
 
 
         clean = False
         if not (clean):
             insgrp.add(Rectangle(size=(bw,
                                     bh),
-                              pos=(self.x,
+                              pos=(self.x + xos,
                                    self.y + bos +
                                    (job.line - 1) * jlos)))
 
