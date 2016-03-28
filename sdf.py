@@ -622,12 +622,20 @@ class DayBtn(Button):  # day button class
         if (job.doBy.date() == self.arwin):
             # if the date due is on current day 
             rad = int(mw*0.2027)
+            # draw indicator
             insgrpalt.add(RoundedRectangle(size=(mw,
                                      mh),
                                      pos=(self.x+self.width/2-mw/2,
                                           self.y+self.height/2-mh/2),
                                      radius=(rad, rad)))
 
+            # mouseover stuff
+            # main srp (square render position)
+            # its a range of the x and then the y value
+            xrs = self.x+self.width/2-mw/2 # x range start
+            yrs = self.y+self.height/2-mh/2 # y range start
+            job.srp = ((xrs, xrs + mw), (yrs, yrs + mh))
+ 
             bw = self.width*.5 # so that the last cell does not overlap
 
             if (job.timeReq == 0):
@@ -635,10 +643,8 @@ class DayBtn(Button):  # day button class
 
 
         elif (mswd.date() == self.arwin):
-            print(mswd)
             frac = mswd.timestamp - mswd.floor('day').timestamp
             bw = (frac/86400.*self.width)
-            print(bw)
             xos = self.width - bw
 
 
@@ -649,6 +655,12 @@ class DayBtn(Button):  # day button class
                               pos=(self.x + xos,
                                    self.y + bos +
                                    (job.line - 1) * jlos)))
+            
+            # mouseover stuff
+            # line brp (bar render position
+            xrs = self.x+xos # x range start
+            yrs = self.y + bos + (job.line - 1) * jlos # y range start
+            job.brp.append(((xrs, self.right), (yrs, yrs + bh)))
 
         
     def drawnew(self, job, insgrp):
@@ -804,12 +816,47 @@ class CalApp(App):
     cm = date.month # current month
     dayinfo = DayDisplay(size_hint=(1,0.03))
     monthinfo = MonthDisplay(size_hint=(1,0.08))
-        
+
     # main window area
     calmain = CalGame(cols=7, size_hint=(1, .55), dater=date)
 
     def delayed(self, dt):
         self.calmain.makemarks(self.cy, self.cm)
+
+    def checker(self, dt):
+        foundsquare = False
+        detected = None
+        dj = None
+
+        tx = Window.mouse_pos[0]
+        ty = Window.mouse_pos[1]
+
+        for job in joblist:
+            if (foundsquare == True):
+                break
+            # for each job
+            # if still havent found a square
+            # search for square
+            if (job.srp != None):
+                if (tx >= job.srp[0][0] and tx <= job.srp[0][1]):
+                    if (ty >= job.srp[1][0] and ty <= job.srp[1][1]):
+                        # found a square within bounds
+                        foundsquare = True
+                        detected = 'square'
+                        dj = job
+
+            # if there is no square after searching
+            # then only look for line.
+            if (foundsquare == False):
+                if (len(job.brp) > 0):
+                    for cell in job.brp:
+                        if (tx >= cell[0][0] and tx <= cell[0][1]):
+                            if (ty >= cell[1][0] and ty <= cell[1][1]):
+                                detected = 'line'
+                                dj = job
+
+        if (dj != None):
+            print('detected ' + detected + ' ' +  str(dj.name))
 
     def build(self):
         sm = ScreenManager()
@@ -846,6 +893,7 @@ class CalApp(App):
 
         self.calmain.kivycalpop(curryr, currmnth)
         Clock.schedule_once(self.delayed, 1)  # TODO: refine delay
+        Clock.schedule_interval(self.checker, .1)  # TODO: refine delay
         return sm
 
 
@@ -901,6 +949,9 @@ class Job:
         self.job_id = job_id
         self.line = 0
         self.clr = None
+
+        self.brp = [] # bar render pos
+        self.srp = None # square render pos
 
     # time left (calculated from current time)
     def timeLeft(self):
