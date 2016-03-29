@@ -574,9 +574,38 @@ class DayBtn(Button):  # day button class
     halign = 'right'
     valign = 'top'
     font_size = int(text_size[0]*0.25)
+    ph = 0
+
+    def startexpand(self,dt):
+        Clock.schedule_interval(self.expand, 1./60.)
+
+    def startcontract(self,dt):
+        Clock.schedule_interval(self.contract, 1./60.)
+
+    def expand(self, dt):
+        self.parent.makemarks(self.parent.parent.children[1].dater.year, 3)
+        finalph = 20
+        steps = 60*0.05
+        stepph = finalph/steps
+        self.ph = self.ph + stepph
+        if (self.ph >= 8):
+            self.ph = 8
+            Clock.unschedule(self.expand)
+            Clock.schedule_interval(self.contract, 1./60.)
+
+    def contract(self, dt):
+        self.parent.makemarks(self.parent.parent.children[1].dater.year, 3)
+        finalph = 20
+        steps = 60*0.05
+        stepph = finalph/steps
+        self.ph = self.ph - stepph
+        if (self.ph <= 0):
+            self.ph = 0
+            Clock.unschedule(self.contract)
 
     def on_release(self):
-        ntf2(self, self.arwin)
+        Clock.schedule_once(self.startexpand, 0)
+        # ntf2(self, self.arwin)
 
     def drawtodaymarker(self, insgrp):
         insgrp.add(Color(1, 1, 1, 0.4))
@@ -624,7 +653,7 @@ class DayBtn(Button):  # day button class
             rad = int(mw*0.2027)
             # draw indicator
             insgrpalt.add(RoundedRectangle(size=(mw,
-                                     mh),
+                                     mh+self.ph),
                                      pos=(self.x+self.width/2-mw/2,
                                           self.y+self.height/2-mh/2),
                                      radius=(rad, rad)))
