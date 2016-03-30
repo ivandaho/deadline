@@ -258,10 +258,13 @@ class CalGame(GridLayout):  # main class
         pass
 
     def makemarks(self, yr, mnth):
+        for job in joblist:
+            job.brp = []
+            job.srp = None
         self.rm(self.ig1) # removes the insgrp from canvas
         self.rm(self.ig2)
         self.rm(self.ig2alt)
-        getspace(self, yr, mnth)
+        # getspace(self, yr, mnth) # only needed once
         self.ig1.clear() # clears the insgrp
         self.ig2alt.clear()
         self.ig2.clear()
@@ -302,57 +305,57 @@ class CalGame(GridLayout):  # main class
         # print('MADE MARKS!')
 
 
-def getspace(self, yr, mnth):
-    # get days in this month first
-    ditmvar = ditm_specific(yr, mnth)
-    # check job against each day (in month)
-    # this is for the bars. have to check each day
-    # to see what jobs need to be done on what days
-    currday = 1
-    while (currday <= ditmvar):
-        datetocheck = arrow.get(yr, mnth, currday,0,0,0,0,tz.tzlocal())
-        jobstodo = []
+    def getspace(self, yr, mnth):
+        # get days in this month first
+        ditmvar = ditm_specific(yr, mnth)
+        # check job against each day (in month)
+        # this is for the bars. have to check each day
+        # to see what jobs need to be done on what days
+        currday = 1
+        while (currday <= ditmvar):
+            datetocheck = arrow.get(yr, mnth, currday,0,0,0,0,tz.tzlocal())
+            jobstodo = []
 
-        for job in joblist:
-            # minimum start work date in int
-            # compensate for time zone headache (TODO: solve later)
-            # this is to calculate line number 
-            # (for days with multiple jobs)
-            mswd = arrow.get(job.doBy.timestamp - job.timeReq)
-            dobyarrow = (arrow.get(job.doBy))
+            for job in joblist:
+                # minimum start work date in int
+                # compensate for time zone headache (TODO: solve later)
+                # this is to calculate line number 
+                # (for days with multiple jobs)
+                mswd = arrow.get(job.doBy.timestamp - job.timeReq)
+                dobyarrow = (arrow.get(job.doBy))
 
-            mswd = mswd.floor('day')
-            dobyarrow = dobyarrow.ceil('day')
+                mswd = mswd.floor('day')
+                dobyarrow = dobyarrow.ceil('day')
 
-            # if the day is a working day
-            # x > y means x is more recent than y
+                # if the day is a working day
+                # x > y means x is more recent than y
 
-            # datetocheck.floor('day') to get a date that is 00:00
-            if (datetocheck.floor('day') <= dobyarrow):
-                # if there is a job due after this day's 0:00
+                # datetocheck.floor('day') to get a date that is 00:00
+                if (datetocheck.floor('day') <= dobyarrow):
+                    # if there is a job due after this day's 0:00
 
-                if (datetocheck.floor('day') >= mswd):
-                    jobstodo.append(job)
+                    if (datetocheck.floor('day') >= mswd):
+                        jobstodo.append(job)
 
-                # why did i do this?
-                if (datetocheck.floor('day').replace(days=1) >= dobyarrow):
-                    if job in jobstodo:
-                        jobstodo.remove(job)
-                    jobstodo.append(job)
-                    pass
+                    # why did i do this?
+                    if (datetocheck.floor('day').replace(days=1) >= dobyarrow):
+                        if job in jobstodo:
+                            jobstodo.remove(job)
+                        jobstodo.append(job)
+                        pass
 
 
-            daydict[datetocheck.date()] = jobstodo 
+                daydict[datetocheck.date()] = jobstodo 
 
-        x = 1
-        tj = 0
-        for item in daydict[datetocheck.date()]:
-            tj = tj + 1
-            if (item.line == 0):
-                item.line = x
-            x = x + 1
+            x = 1
+            tj = 0
+            for item in daydict[datetocheck.date()]:
+                tj = tj + 1
+                if (item.line == 0):
+                    item.line = x
+                x = x + 1
 
-        currday = currday + 1
+            currday = currday + 1
 
         
 class InputFields(BoxLayout):
@@ -536,6 +539,7 @@ class EWB(Button):
    
     sm = ObjectProperty()
     def delayed(self, dt):
+        self.parent.parent.children[1].getspace(self.yr, self.mnth)
         self.parent.parent.children[1].makemarks(self.yr, self.mnth)
 
     def on_release(self):
@@ -576,36 +580,8 @@ class DayBtn(Button):  # day button class
     font_size = int(text_size[0]*0.25)
     ph = 0
 
-    def startexpand(self,dt):
-        Clock.schedule_interval(self.expand, 1./60.)
-
-    def startcontract(self,dt):
-        Clock.schedule_interval(self.contract, 1./60.)
-
-    def expand(self, dt):
-        self.parent.makemarks(self.parent.parent.children[1].dater.year, 3)
-        finalph = 20
-        steps = 60*0.05
-        stepph = finalph/steps
-        self.ph = self.ph + stepph
-        if (self.ph >= 8):
-            self.ph = 8
-            Clock.unschedule(self.expand)
-            Clock.schedule_interval(self.contract, 1./60.)
-
-    def contract(self, dt):
-        self.parent.makemarks(self.parent.parent.children[1].dater.year, 3)
-        finalph = 20
-        steps = 60*0.05
-        stepph = finalph/steps
-        self.ph = self.ph - stepph
-        if (self.ph <= 0):
-            self.ph = 0
-            Clock.unschedule(self.contract)
-
     def on_release(self):
-        Clock.schedule_once(self.startexpand, 0)
-        # ntf2(self, self.arwin)
+        ntf2(self, self.arwin)
 
     def drawtodaymarker(self, insgrp):
         insgrp.add(Color(1, 1, 1, 0.4))
@@ -855,9 +831,15 @@ class CalApp(App):
     si = (ms - 1)/ss # scale interval amount
 
     def delayed(self, dt):
+        self.calmain.getspace(self.cy, self.cm)
         self.calmain.makemarks(self.cy, self.cm)
 
     def checker(self, dt):
+#         fps display, useful
+#         fps = Clock.get_fps()
+#         if (fps < 60):
+#             print(fps)
+
         foundsquare = False
         detected = None
         dj = None
@@ -866,6 +848,8 @@ class CalApp(App):
         ty = Window.mouse_pos[1]
 
         for job in joblist:
+            if (detected == 'square'):
+                break
             if (dj == None):
                 # for each job
                 # if still havent found a square
@@ -877,18 +861,20 @@ class CalApp(App):
                             foundsquare = True
                             detected = 'square'
                             dj = job
+                            break
 
             # if there is no square after searching
-        for job in joblist:
-            if (dj == None):
-                # then only look for line.
-                if (foundsquare == False):
-                    if (len(job.brp) > 0):
-                        for cell in job.brp:
-                            if (tx >= cell[0][0] and tx <= cell[0][1]):
-                                if (ty >= cell[1][0] and ty <= cell[1][1]):
-                                    detected = 'line'
-                                    dj = job
+        if (foundsquare != True):
+            for job in joblist:
+                if (dj == None):
+                    # then only look for line.
+                    if (foundsquare == False):
+                        if (len(job.brp) > 0):
+                            for cell in job.brp:
+                                if (tx >= cell[0][0] and tx <= cell[0][1]):
+                                    if (ty >= cell[1][0] and ty <= cell[1][1]):
+                                        detected = 'line'
+                                        dj = job
 
         for job in joblist:
             if (dj == job):
@@ -941,7 +927,7 @@ class CalApp(App):
             Rectangle(pos=(0, 0), size=Window.size)
 
         self.calmain.kivycalpop(curryr, currmnth)
-        Clock.schedule_once(self.delayed, 1)  # TODO: refine delay
+        Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
         Clock.schedule_interval(self.checker, 1/60)  # TODO: refine delay
         return sm
 
