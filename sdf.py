@@ -299,7 +299,7 @@ class CalGame(GridLayout):  # main class
         self.canvas.add(self.ig1) # 2 is daymarker
         self.canvas.add(self.ig2) # 2 is job related markers
         self.canvas.add(self.ig2alt) # 2 is job related markers
-        print('MADE MARKS!')
+        # print('MADE MARKS!')
 
 
 def getspace(self, yr, mnth):
@@ -628,6 +628,7 @@ class DayBtn(Button):  # day button class
             mw = int(self.height*0.8)
         else:
             mw = int(self.width*0.8)
+        mw = mw * job.s
         mh = mw
         totalspacing = mw * 0.03
         spacing = totalspacing + totalspacing
@@ -653,7 +654,7 @@ class DayBtn(Button):  # day button class
             rad = int(mw*0.2027)
             # draw indicator
             insgrpalt.add(RoundedRectangle(size=(mw,
-                                     mh+self.ph),
+                                     mh),
                                      pos=(self.x+self.width/2-mw/2,
                                           self.y+self.height/2-mh/2),
                                      radius=(rad, rad)))
@@ -689,7 +690,7 @@ class DayBtn(Button):  # day button class
             # line brp (bar render position
             xrs = self.x+xos # x range start
             yrs = self.y + bos + (job.line - 1) * jlos # y range start
-            job.brp.append(((xrs, self.right), (yrs, yrs + bh)))
+            job.brp.append(((xrs, xrs+bw), (yrs, yrs + bh)))
 
         
     def drawnew(self, job, insgrp):
@@ -849,6 +850,10 @@ class CalApp(App):
     # main window area
     calmain = CalGame(cols=7, size_hint=(1, .55), dater=date)
 
+    ms = 1.155 # max mouseover scale
+    ss = 5. # scale steps
+    si = (ms - 1)/ss # scale interval amount
+
     def delayed(self, dt):
         self.calmain.makemarks(self.cy, self.cm)
 
@@ -861,31 +866,46 @@ class CalApp(App):
         ty = Window.mouse_pos[1]
 
         for job in joblist:
-            if (foundsquare == True):
-                break
-            # for each job
-            # if still havent found a square
-            # search for square
-            if (job.srp != None):
-                if (tx >= job.srp[0][0] and tx <= job.srp[0][1]):
-                    if (ty >= job.srp[1][0] and ty <= job.srp[1][1]):
-                        # found a square within bounds
-                        foundsquare = True
-                        detected = 'square'
-                        dj = job
+            if (dj == None):
+                # for each job
+                # if still havent found a square
+                # search for square
+                if (job.srp != None):
+                    if (tx >= job.srp[0][0] and tx <= job.srp[0][1]):
+                        if (ty >= job.srp[1][0] and ty <= job.srp[1][1]):
+                            # found a square within bounds
+                            foundsquare = True
+                            detected = 'square'
+                            dj = job
 
             # if there is no square after searching
-            # then only look for line.
-            if (foundsquare == False):
-                if (len(job.brp) > 0):
-                    for cell in job.brp:
-                        if (tx >= cell[0][0] and tx <= cell[0][1]):
-                            if (ty >= cell[1][0] and ty <= cell[1][1]):
-                                detected = 'line'
-                                dj = job
+        for job in joblist:
+            if (dj == None):
+                # then only look for line.
+                if (foundsquare == False):
+                    if (len(job.brp) > 0):
+                        for cell in job.brp:
+                            if (tx >= cell[0][0] and tx <= cell[0][1]):
+                                if (ty >= cell[1][0] and ty <= cell[1][1]):
+                                    detected = 'line'
+                                    dj = job
 
+        for job in joblist:
+            if (dj == job):
+            # expand if mouseovered
+                if (dj.s < self.ms):
+                    dj.s = dj.s + self.si # expand variable
+
+            else:
+            # contract if not mouseovered
+                if (job.s > 1):
+                    job.s = job.s - self.si
+
+
+        self.calmain.makemarks(self.cy, self.cm) # only need once per check
         if (dj != None):
-            print('detected ' + detected + ' ' +  str(dj.name))
+            print('detected ' + detected + ' on ' + str(dj.name))
+
 
     def build(self):
         sm = ScreenManager()
@@ -922,7 +942,7 @@ class CalApp(App):
 
         self.calmain.kivycalpop(curryr, currmnth)
         Clock.schedule_once(self.delayed, 1)  # TODO: refine delay
-        Clock.schedule_interval(self.checker, .1)  # TODO: refine delay
+        Clock.schedule_interval(self.checker, 1/60)  # TODO: refine delay
         return sm
 
 
@@ -981,6 +1001,7 @@ class Job:
 
         self.brp = [] # bar render pos
         self.srp = None # square render pos
+        self.s = 1
 
     # time left (calculated from current time)
     def timeLeft(self):
