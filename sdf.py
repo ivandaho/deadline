@@ -154,6 +154,26 @@ Builder.load_string("""
             rgba:1,0,0,0.0
     text_size: self.size
 
+<InfoArea>:
+    Label:
+        id: ilb
+        text:self.parent.txt
+        canvas.before:
+            Color:
+                rgba:1,1,1,1
+            Rectangle:
+                pos:(self.pos)
+                size:(self.size)
+
+            Color:
+                rgba:0.4,0.4,0.4,1
+            Rectangle:
+                pos:(self.x+1, self.y)
+                size:(self.width-2,self.height)
+        canvas:
+            Color:
+                rgba:1,1,0,1
+
 """)
 
 class NL(Label):
@@ -173,6 +193,11 @@ def rgb256to1(x, y, z):
     return x, y, z, 0.5
 
 class BtnArea(GridLayout):
+    pass
+
+class InfoArea(GridLayout):
+    ilb = ObjectProperty(None)
+    txt = StringProperty()
     pass
 
 class CalGame(GridLayout):  # main class
@@ -218,8 +243,19 @@ class CalGame(GridLayout):  # main class
     ig0.add(Color(1,1,1,1))
     ig0.add(Rectangle(size=(Window.width,Window.height * 0.89)))
 
+    j = None
+
+    def printdj(dj):
+        if (dj != None):
+            print(dj)
+
+    def on_touch_down(self, touch):
+        print(self.j)
+        # return super(CalGame, self).on_touch_down(touch)
+
     def kivycalpop(self, yr, mnth):
-        self.parent.children[3].md.text = str(self.dater.month) + '/' + str(self.dater.year)
+        ba = self.parent.children[4] # button area
+        ba.md.text = str(self.dater.month) + '/' + str(self.dater.year)
         # for refresh, don't really the next 2 lines need because
         # it will happen later, but the later thing is scheduled
         # 0.01 seconds later because it requires creation. not sure
@@ -530,22 +566,27 @@ class EWB(Button):
     shift = NumericProperty()
     yr = NumericProperty()
     mnth = NumericProperty()
+
     def dates(self):
-        self.yr = self.parent.parent.children[1].dater.year
-        self.mnth = self.parent.parent.children[1].dater.month
+        cm = self.parent.parent.children[2] # calmain
+        self.yr = cm.dater.year
+        self.mnth = cm.dater.month
 
     def getshift(self):
-        self.parent.parent.children[1].dater = self.parent.parent.children[1].dater.replace(months=+self.shift)
+        cm = self.parent.parent.children[2] # calmain
+        cm.dater = cm.dater.replace(months=+self.shift)
    
     sm = ObjectProperty()
     def delayed(self, dt):
-        self.parent.parent.children[1].getspace(self.yr, self.mnth)
-        self.parent.parent.children[1].makemarks(self.yr, self.mnth)
+        cm = self.parent.parent.children[2] # calmain
+        cm.getspace(self.yr, self.mnth)
+        cm.makemarks(self.yr, self.mnth)
 
     def on_release(self):
         self.getshift()
         self.dates()
-        self.parent.parent.children[1].kivycalpop(self.yr, self.mnth)
+        cm = self.parent.parent.children[2] # calmain
+        cm.kivycalpop(self.yr, self.mnth)
         Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
         # sm = self.parent.parent.parent.parent
         # self.parent.children[1].makemarks()
@@ -825,6 +866,7 @@ class CalApp(App):
 
     # main window area
     calmain = CalGame(cols=7, size_hint=(1, .55), dater=date)
+    ia = InfoArea(cols=3, size_hint=(1, .17)) # info area
 
     ms = 1.155 # max mouseover scale
     ss = 5. # scale steps
@@ -838,7 +880,7 @@ class CalApp(App):
 #         fps display, useful
 #         fps = Clock.get_fps()
 #         if (fps < 60):
-#             print(fps)
+#             print(fj is a variable in calmain/CalGaj is a variable in calmain/CalGame)
 
         foundsquare = False
         detected = None
@@ -889,8 +931,11 @@ class CalApp(App):
 
 
         self.calmain.makemarks(self.cy, self.cm) # only need once per check
+        self.calmain.j = dj
+        self.ia.txt = str(self.calmain.j)
         if (dj != None):
-            print('detected ' + detected + ' on ' + str(dj.name))
+            pass
+            #print('detected ' + detected + ' on ' + str(dj.name))
 
 
     def build(self):
@@ -909,9 +954,10 @@ class CalApp(App):
         ewb = EWB(text='<<', sm=sm, shift=-1)
         ewb1 = EWB(text='redraw', sm=sm, shift=0)
         ewb2 = EWB(text='>>', sm=sm, shift=1)
-        eb = BtnArea(cols=3, size_hint=(1, .34))
+        eb = BtnArea(cols=3, size_hint=(1, .17))
         # ewb.size = (100,100) # why do i need this??
         blo.add_widget(eb)
+        blo.add_widget(self.ia)
         eb.add_widget(ewb)
         eb.add_widget(ewb1)
         eb.add_widget(ewb2)
@@ -1009,16 +1055,21 @@ class Job:
         if (self.name == ''):
             self.name == 'Unspecified'
 
-        self.outstr = self.name + " doBy="
+
+        trs = str(self.timeReq/86400.) + ' days' # time req simplified
+
+        self.outstr = self.name + " | Due on "
         self.outstr += str(self.doBy.year) + "-"
         self.outstr += str(self.doBy.month) + "-"
         self.outstr += str(self.doBy.day) + " "
         self.outstr += str(self.doBy.hour) + ":"
-        self.outstr += str(self.doBy.minute) + ":"
-        self.outstr += str(self.doBy.second) + " timeReq="
+        self.outstr += str(self.doBy.minute) + " ("
+        self.outstr += str(self.doBy.humanize()) + ") | "
+        self.outstr += "Time required: "
+        self.outstr += trs
+        # self.outstr += str(self.doBy.second) + " timeReq="
         # self.outstr += str(self.doBy.microsecond) + " "
         # self.outstr += str(self.doBy.tzinfo)
-        self.outstr += str(self.timeReq)
 
         return self.outstr
 
