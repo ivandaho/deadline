@@ -82,6 +82,36 @@ Builder.load_string("""
             size_hint:(1,0.1)
             text:'Add Job'
 
+<NW2>:
+    canvas:
+        Color:
+            rgba:.2,.2,.2,.8
+        RoundedRectangle:
+            size:(self.size)
+            pos:(self.pos)
+    BoxLayout:
+        orientation:'vertical'
+        NWLabel2:
+        AddBtn:
+            size_hint:(1,0.1)
+            text:'Add Job'
+
+<NWLabel2>:
+    markup: True
+    canvas:
+        Color:
+            rgba:1,1,0,.3
+        RoundedRectangle:
+            size:(self.size)
+            pos:(self.pos)
+            radius: self.width * 0.05, self.height * 0.05
+    text_size: self.width * 0.9, self.height * 0.9
+    text: self.parent.parent.lbltext
+    valign: 'top'
+
+    # size_hint:(None,None)
+    # size: (self.parent.width * 0.5, self.parent.height * 0.5)
+
 <NWLabel>:
     pos:(self.parent.width, self.parent.height*1.2)
     canvas:
@@ -250,8 +280,16 @@ class CalGame(GridLayout):  # main class
             print(dj)
 
     def on_touch_down(self, touch):
-        print(self.j)
-        # return super(CalGame, self).on_touch_down(touch)
+        if (self.j != None):
+            # TODO: check for ctrl or other modfier to bypass
+            #       for buttons that are harder to click on directly
+
+            # event under cursor
+            spawnjw(self, self.j)
+            print(self.j)
+        else:
+            # otherwise propagate touch
+            return super(CalGame, self).on_touch_down(touch)
 
     def kivycalpop(self, yr, mnth):
         ba = self.parent.children[4] # button area
@@ -268,6 +306,8 @@ class CalGame(GridLayout):  # main class
             self.remove_widget(self.children[0])
         # this is for the calendar buttons only
         gridindex = dofotm_specific(yr, mnth) + 1
+        if (gridindex == 7):
+            gridindex = 0
         currday = 1
         y = 0
         # yr = arrow.get(yr, mnth, 1).year
@@ -332,7 +372,7 @@ class CalGame(GridLayout):  # main class
                     ji = []
 
                 for item in ji:
-                    child.drawnewer(item, self.ig2, self.ig2alt)
+                    child.drawnewer(item, self.ig2, self.ig2alt, cleanvar)
 
 
         self.canvas.add(self.ig1) # 2 is daymarker
@@ -389,7 +429,10 @@ class CalGame(GridLayout):  # main class
                 tj = tj + 1
                 if (item.line == 0):
                     item.line = x
+                # TODO: write something better for line > 3
                 x = x + 1
+                if (x == 4):
+                    x = 1
 
             currday = currday + 1
 
@@ -531,6 +574,15 @@ class NWLabel(Label):
         self.parent.parent.parent.remove_widget(nw)
         return True  # eats touch
 
+class NWLabel2(Label):
+    def on_touch_down(self, touch):
+        print(self.parent.parent.parent.parent)
+        if self.collide_point(*touch.pos):
+            # if clicked on box. for later
+            pass
+        self.parent.parent.parent.remove_widget(nw2)
+        return True  # eats touch
+
 
 
 
@@ -550,16 +602,54 @@ class NW(StackLayout):
                         ')' + '\n'
                         # str(item.doBy.format('M/D/YY HH:mm')) + \
 
+class NW2(StackLayout):
+    lbltext = StringProperty()
+
+    def draw(self, job):
+
+        trs = str(job.timeReq/86400.) + ' days' # time req simplified
+        mswd = arrow.get(job.doBy.timestamp - job.timeReq)
+        mswdd = mswd.format('d MMMM YYYY')
+        mswdt = mswd.format('h:mm A')
+        self.lbltext = ''
+        # print(self.lbltext)
+        self.lbltext += '[b][size=24]' + str(job.name) + '[/size][/b]\n'
+        self.lbltext += 'Due ' + str(job.doBy.format('D MMMM YYYY'))
+        self.lbltext += ' at ' + str(job.doBy.format('h:mm A')) + '\n\n'
+        self.lbltext += 'Approximately ' + trs + ' to complete' + '\n'
+        self.lbltext += 'Latest date to start is ' + str(mswdd)
+        self.lbltext += ' at ' + str(mswdt)
+
+
+#       self.outstr = self.name + " | Due on "
+#       self.outstr += str(self.doBy.year) + "-"
+#       self.outstr += str(self.doBy.month) + "-"
+#       self.outstr += str(self.doBy.day) + " "
+#       self.outstr += str(self.doBy.hour) + ":"
+#       self.outstr += str(self.doBy.minute) + " ("
+#       self.outstr += str(self.doBy.humanize()) + ") | "
+#       self.outstr += "Time required: "
+#       self.outstr += trs
 
 
 nw = NW(size=(Window.width*.85,Window.height*.85))
 nw.size_hint = (None, None)
 nw.pos = (Window.width/2 - nw.width/2, Window.height/2 - nw.height/2)# + EWB.height)
 
+nw2 = NW2(size=(Window.width*.85,Window.height*.85))
+nw2.size_hint = (None, None)
+nw2.pos = (Window.width/2 - nw2.width/2, Window.height/2 - nw2.height/2)
+cleanvar = False
+
 def spawnnw(self, jobitems, arwin):
+    print(nw.lbltext)
     nw.draw(jobitems)
     nw.date = arwin
     self.parent.parent.parent.add_widget(nw)
+
+def spawnjw(self, job):
+    nw2.draw(job)
+    self.parent.parent.add_widget(nw2)
 
 
 class EWB(Button):
@@ -594,6 +684,20 @@ class EWB(Button):
         # self.parent.parent.parent.parent.current = '2'
         # print(sm.current)
 
+
+class RedrawBtn(EWB):
+    def on_release(self):
+        global cleanvar
+        if (cleanvar == True):
+            cleanvar = False
+        else:
+            cleanvar = True
+
+        self.getshift()
+        self.dates()
+        cm = self.parent.parent.children[2] # calmain
+        cm.kivycalpop(self.yr, self.mnth)
+        Clock.schedule_once(self.delayed)  # TODO: refine delay
 
 class DayLabel(Label):  # empty widget class
     pass
@@ -635,7 +739,7 @@ class DayBtn(Button):  # day button class
                         pos=(self.x + self.width/2 - x/2,
                              self.y + self.height/2 - y/2)))
 
-    def drawnewer(self, job, insgrp, insgrpalt):
+    def drawnewer(self, job, insgrp, insgrpalt, clean):
         ri = self.parent.seed
         self.parent.seed = self.parent.seed + 1
         if (self.parent.seed == len(self.parent.cl)-1):
@@ -695,8 +799,8 @@ class DayBtn(Button):  # day button class
             xos = self.width - bw
 
 
-        clean = False
-        if not (clean):
+        # clean = False
+        if not (cleanvar):
             insgrp.add(Rectangle(size=(bw,
                                     bh),
                               pos=(self.x + xos,
@@ -932,7 +1036,10 @@ class CalApp(App):
 
         self.calmain.makemarks(self.cy, self.cm) # only need once per check
         self.calmain.j = dj
-        self.ia.txt = str(self.calmain.j)
+        if (self.calmain.j != None):
+            self.ia.txt = str(self.calmain.j)
+        else:
+            self.ia.txt = '--'
         if (dj != None):
             pass
             #print('detected ' + detected + ' on ' + str(dj.name))
@@ -952,7 +1059,7 @@ class CalApp(App):
         currmnth = arrow.get(tz.tzlocal()).month
 
         ewb = EWB(text='<<', sm=sm, shift=-1)
-        ewb1 = EWB(text='redraw', sm=sm, shift=0)
+        ewb1 = RedrawBtn(text='toggle clean', sm=sm, shift=0)
         ewb2 = EWB(text='>>', sm=sm, shift=1)
         eb = BtnArea(cols=3, size_hint=(1, .17))
         # ewb.size = (100,100) # why do i need this??
@@ -973,7 +1080,7 @@ class CalApp(App):
             Rectangle(pos=(0, 0), size=Window.size)
 
         self.calmain.kivycalpop(curryr, currmnth)
-        Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
+        Clock.schedule_once(self.delayed, .1)  # TODO: refine delay
         Clock.schedule_interval(self.checker, 1/60)  # TODO: refine delay
         return sm
 
@@ -1075,6 +1182,10 @@ class Job:
 
 #####################################
 
+def deldbitem():
+    # CONTINUE
+    # q = "DELETE FROM
+    pass
 
 def initdbclass():
     q = "DELETE FROM wt"  # clear table before doing anything
@@ -1083,56 +1194,56 @@ def initdbclass():
     # weird things happen when the time has weird numbers
     q = """
     INSERT INTO wt VALUES('laundry','86400',
-                          STR_TO_DATE('2016/03/18 20:01:00',
+                          STR_TO_DATE('2016/04/18 20:01:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('something new on same date','604800',
-                          STR_TO_DATE('2016/03/27 23:46:43',
+                          STR_TO_DATE('2016/04/27 23:46:43',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('paper','172800',
-                          STR_TO_DATE('2016/03/08 14:00:00',
+                          STR_TO_DATE('2016/04/08 14:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('csc club meeting','0',
-                          STR_TO_DATE('2016/03/09 11:00:00',
+                          STR_TO_DATE('2016/04/09 11:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('database project','604800',
-                          STR_TO_DATE('2016/03/29 08:00:00',
+                          STR_TO_DATE('2016/04/29 08:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
     INSERT INTO wt VALUES('test new on 25th','86400',
-                          STR_TO_DATE('2016/03/25 08:00:00',
+                          STR_TO_DATE('2016/04/25 08:00:00',
 
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
     q = """
-    INSERT INTO wt VALUES('new item in april','604800',
-                          STR_TO_DATE('2016/04/02 08:00:00',
+    INSERT INTO wt VALUES('new item in may','604800',
+                          STR_TO_DATE('2016/05/02 08:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
 
     q = """
-    INSERT INTO wt VALUES('second new item in april','86400',
-                          STR_TO_DATE('2016/04/15 08:00:00',
+    INSERT INTO wt VALUES('second new item in may','86400',
+                          STR_TO_DATE('2016/05/15 08:00:00',
                                       '%Y/%m/%d %T'), NULL);
     """
     db.query(q)
