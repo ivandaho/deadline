@@ -92,7 +92,7 @@ Builder.load_string("""
     BoxLayout:
         orientation:'vertical'
         NWLabel2:
-        AddBtn:
+        DelBtn:
             size_hint:(1,0.1)
             text:'Add Job'
 
@@ -537,8 +537,31 @@ class SubmitBtn(Button):
         refwid = sm.children[0].children[0]
         refwid.remove_widget(nw)
 
-        dater = refwid.children[0].children[1].dater
-        refwid.children[0].children[1].makemarks(dater.year, dater.month)
+        dater = refwid.children[0].children[2].dater
+        refwid.children[0].children[2].getspace(dater.year, dater.month)
+        refwid.children[0].children[2].makemarks(dater.year, dater.month)
+
+class DelBtn(Button):
+
+
+    def on_release(self):
+
+        # deletes from db
+        deldbitem(self, self.parent.parent.jb)
+
+        # deletes from joblist (prevent refresh??)
+        for job in joblist:
+            if (job == self.parent.parent.jb):
+                joblist.remove(self.parent.parent.jb)
+
+        refwid = self.parent.parent.parent
+        refwid.remove_widget(nw2)
+        
+        cm = refwid.children[0].children[2]
+        dater = cm.dater
+
+        # makemarks is always happening, but need getspace to refresh
+        cm.getspace(dater.year, dater.month)
 
 class AddBtn(Button):
     def on_release(self):
@@ -604,8 +627,10 @@ class NW(StackLayout):
 
 class NW2(StackLayout):
     lbltext = StringProperty()
+    jb = ObjectProperty()
 
     def draw(self, job):
+        self. jb = job
 
         trs = str(job.timeReq/86400.) + ' days' # time req simplified
         mswd = arrow.get(job.doBy.timestamp - job.timeReq)
@@ -685,19 +710,13 @@ class EWB(Button):
         # print(sm.current)
 
 
-class RedrawBtn(EWB):
+class RedrawBtn(Button):
     def on_release(self):
         global cleanvar
         if (cleanvar == True):
             cleanvar = False
         else:
             cleanvar = True
-
-        self.getshift()
-        self.dates()
-        cm = self.parent.parent.children[2] # calmain
-        cm.kivycalpop(self.yr, self.mnth)
-        Clock.schedule_once(self.delayed)  # TODO: refine delay
 
 class DayLabel(Label):  # empty widget class
     pass
@@ -1059,7 +1078,7 @@ class CalApp(App):
         currmnth = arrow.get(tz.tzlocal()).month
 
         ewb = EWB(text='<<', sm=sm, shift=-1)
-        ewb1 = RedrawBtn(text='toggle clean', sm=sm, shift=0)
+        ewb1 = RedrawBtn(text='toggle clean')
         ewb2 = EWB(text='>>', sm=sm, shift=1)
         eb = BtnArea(cols=3, size_hint=(1, .17))
         # ewb.size = (100,100) # why do i need this??
@@ -1182,9 +1201,14 @@ class Job:
 
 #####################################
 
-def deldbitem():
+def deldbitem(self, job):
     # CONTINUE
-    # q = "DELETE FROM
+    print(str(job.name))
+    q = 'DELETE FROM wt WHERE name = "' + str(job.name) + '";'
+    db.query(q)
+    db.cnx.commit()
+    refreshjoblist(joblist, doBylist, dodwj, daydict)
+
     pass
 
 def initdbclass():
