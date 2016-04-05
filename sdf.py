@@ -71,7 +71,7 @@ Builder.load_string("""
 <NW>:
     canvas:
         Color:
-            rgba:.2,.2,.2,.8
+            rgba:.0941,.4118,.5216,.95
         Rectangle:
             size:(self.size)
             pos:(self.pos)
@@ -85,26 +85,24 @@ Builder.load_string("""
 <NW2>:
     canvas:
         Color:
-            rgba:.2,.2,.2,.8
-        RoundedRectangle:
+            rgba:.4353,.502,.0784,.95
+        Rectangle:
             size:(self.size)
             pos:(self.pos)
     BoxLayout:
         orientation:'vertical'
         NWLabel2:
-        DelBtn:
+        BoxLayout:
             size_hint:(1,0.1)
-            text:'Add Job'
+            orientation:'horizontal'
+            DelBtn:
+                text:'Delete Job'
+                background_color: 1,0,0,1
+            ModBtn:
+                text:'Modify Job'
 
 <NWLabel2>:
     markup: True
-    canvas:
-        Color:
-            rgba:1,1,0,.3
-        RoundedRectangle:
-            size:(self.size)
-            pos:(self.pos)
-            radius: self.width * 0.05, self.height * 0.05
     text_size: self.width * 0.9, self.height * 0.9
     text: self.parent.parent.lbltext
     valign: 'top'
@@ -113,13 +111,8 @@ Builder.load_string("""
     # size: (self.parent.width * 0.5, self.parent.height * 0.5)
 
 <NWLabel>:
+    markup: True
     pos:(self.parent.width, self.parent.height*1.2)
-    canvas:
-        Color:
-            rgba:1,0,0,.3
-        Rectangle:
-            size:(self.size)
-            pos:(self.pos)
     text_size: self.size
     text: self.parent.parent.lbltext
     #size_hint:(None,None)
@@ -541,20 +534,23 @@ class SubmitBtn(Button):
         refwid.children[0].children[2].getspace(dater.year, dater.month)
         refwid.children[0].children[2].makemarks(dater.year, dater.month)
 
-class DelBtn(Button):
+class ModBtn(Button):
+    def on_release(self):
+        pass
 
+class DelBtn(Button):
 
     def on_release(self):
 
         # deletes from db
-        deldbitem(self, self.parent.parent.jb)
+        deldbitem(self, self.parent.parent.parent.jb)
 
         # deletes from joblist (prevent refresh??)
         for job in joblist:
-            if (job == self.parent.parent.jb):
-                joblist.remove(self.parent.parent.jb)
+            if (job == self.parent.parent.parent.jb):
+                joblist.remove(self.parent.parent.parent.jb)
 
-        refwid = self.parent.parent.parent
+        refwid = self.parent.parent.parent.parent
         refwid.remove_widget(nw2)
         
         cm = refwid.children[0].children[2]
@@ -590,7 +586,6 @@ class AddBtn(Button):
 
 class NWLabel(Label):
     def on_touch_down(self, touch):
-        print(self.parent.parent.parent.parent)
         if self.collide_point(*touch.pos):
             # if clicked on box. for later
             pass
@@ -599,10 +594,6 @@ class NWLabel(Label):
 
 class NWLabel2(Label):
     def on_touch_down(self, touch):
-        print(self.parent.parent.parent.parent)
-        if self.collide_point(*touch.pos):
-            # if clicked on box. for later
-            pass
         self.parent.parent.parent.remove_widget(nw2)
         return True  # eats touch
 
@@ -614,16 +605,20 @@ class NW(StackLayout):
     lbltext = StringProperty()
 
     def draw(self, jobitems):
-        self.lbltext = 'no jobs to do'
+        self.lbltext = '[size=24][b]No jobs on ' + str(self.date) + '[/b][/size]'
         if (len(jobitems) > 0):
-            self.lbltext = ''
+            self.lbltext = '[size=32][b]Tasks on ' + str(self.date) + ' :\n[/b][/size]'
             for item in jobitems:
-                self.lbltext = self.lbltext + str(item.name) + \
-                        ' due on ' + \
-                        str(item.doBy) + \
-                        ' (' + str(item.doBy.humanize()) + \
-                        ')' + '\n'
-                        # str(item.doBy.format('M/D/YY HH:mm')) + \
+                self.lbltext += '[size=24][b]' + str(item.name) + '[/size][/b]'
+                self.lbltext += '\nDue ' + str(item.doBy.format('D MMMM YYYY'))
+                self.lbltext += ' at ' + str(item.doBy.format('h:mm A'))
+
+                self.lbltext += ' (' + str(item.doBy.humanize()) + ')' + '\n\n'
+                # str(item.doBy.format('M/D/YY HH:mm')) + \
+
+                # self.lbltext += item.doBy.humanize(self.date) + '\n'
+               
+
 
 class NW2(StackLayout):
     lbltext = StringProperty()
@@ -646,17 +641,6 @@ class NW2(StackLayout):
         self.lbltext += ' at ' + str(mswdt)
 
 
-#       self.outstr = self.name + " | Due on "
-#       self.outstr += str(self.doBy.year) + "-"
-#       self.outstr += str(self.doBy.month) + "-"
-#       self.outstr += str(self.doBy.day) + " "
-#       self.outstr += str(self.doBy.hour) + ":"
-#       self.outstr += str(self.doBy.minute) + " ("
-#       self.outstr += str(self.doBy.humanize()) + ") | "
-#       self.outstr += "Time required: "
-#       self.outstr += trs
-
-
 nw = NW(size=(Window.width*.85,Window.height*.85))
 nw.size_hint = (None, None)
 nw.pos = (Window.width/2 - nw.width/2, Window.height/2 - nw.height/2)# + EWB.height)
@@ -667,9 +651,8 @@ nw2.pos = (Window.width/2 - nw2.width/2, Window.height/2 - nw2.height/2)
 cleanvar = False
 
 def spawnnw(self, jobitems, arwin):
-    print(nw.lbltext)
-    nw.draw(jobitems)
     nw.date = arwin
+    nw.draw(jobitems)
     self.parent.parent.parent.add_widget(nw)
 
 def spawnjw(self, job):
@@ -681,27 +664,25 @@ class EWB(Button):
     shift = NumericProperty()
     yr = NumericProperty()
     mnth = NumericProperty()
-
-    def dates(self):
-        cm = self.parent.parent.children[2] # calmain
-        self.yr = cm.dater.year
-        self.mnth = cm.dater.month
+    sm = ObjectProperty()
 
     def getshift(self):
-        cm = self.parent.parent.children[2] # calmain
-        cm.dater = cm.dater.replace(months=+self.shift)
-   
-    sm = ObjectProperty()
+        self.cm.dater = self.cm.dater.replace(months=+self.shift)
+
+    def dates(self):
+        self.yr = self.cm.dater.year
+        self.mnth = self.cm.dater.month
+
     def delayed(self, dt):
         cm = self.parent.parent.children[2] # calmain
         cm.getspace(self.yr, self.mnth)
         cm.makemarks(self.yr, self.mnth)
 
     def on_release(self):
+        self.cm = self.parent.parent.children[2] # calmain
         self.getshift()
         self.dates()
-        cm = self.parent.parent.children[2] # calmain
-        cm.kivycalpop(self.yr, self.mnth)
+        self.cm.kivycalpop(self.yr, self.mnth)
         Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
         # sm = self.parent.parent.parent.parent
         # self.parent.children[1].makemarks()
@@ -1056,7 +1037,7 @@ class CalApp(App):
         self.calmain.makemarks(self.cy, self.cm) # only need once per check
         self.calmain.j = dj
         if (self.calmain.j != None):
-            self.ia.txt = str(self.calmain.j)
+            self.ia.txt = str(self.calmain.j.name)
         else:
             self.ia.txt = '--'
         if (dj != None):
@@ -1203,7 +1184,6 @@ class Job:
 
 def deldbitem(self, job):
     # CONTINUE
-    print(str(job.name))
     q = 'DELETE FROM wt WHERE name = "' + str(job.name) + '";'
     db.query(q)
     db.cnx.commit()
