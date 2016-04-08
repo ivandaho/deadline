@@ -18,7 +18,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.stacklayout import StackLayout
-from kivy.properties import ObjectProperty, StringProperty, NumericProperty
+from kivy.properties import ObjectProperty, StringProperty, NumericProperty, OptionProperty
 import sys
 
 from kivy.core.window import Window
@@ -71,7 +71,8 @@ Builder.load_string("""
 <NW>:
     canvas:
         Color:
-            rgba:.0941,.4118,.5216,.95
+            rgba:.267,.267,.267,.95
+            # rgba:.0941,.4118,.5216,.95
         Rectangle:
             size:(self.size)
             pos:(self.pos)
@@ -85,7 +86,8 @@ Builder.load_string("""
 <NW2>:
     canvas:
         Color:
-            rgba:.4353,.502,.0784,.95
+            rgba: self.c0, self.c1, self.c3
+            # rgba:.4353,.502,.0784,.95
         Rectangle:
             size:(self.size)
             pos:(self.pos)
@@ -112,11 +114,12 @@ Builder.load_string("""
 
 <NWLabel>:
     markup: True
-    pos:(self.parent.width, self.parent.height*1.2)
-    text_size: self.size
+    pos:(self.parent.width, self.parent.height*1.2) # why need this?
+    text_size: self.width * 0.9, self.height * 0.9
     text: self.parent.parent.lbltext
     #size_hint:(None,None)
-    valign: 'top'
+    valign: self.parent.parent.v
+    halign: self.parent.parent.h
 
 <MonthDisplay>:
     md: md
@@ -179,6 +182,7 @@ Builder.load_string("""
 
 <InfoArea>:
     Label:
+        markup: True
         id: ilb
         text:self.parent.txt
         canvas.before:
@@ -199,6 +203,8 @@ Builder.load_string("""
 
 """)
 
+delaymode = False
+
 class NL(Label):
     pass
 
@@ -214,6 +220,18 @@ def rgb256to1(x, y, z):
     y = 1 / 256 * y
     z = 1 / 256 * z
     return x, y, z, 0.5
+
+def hexc(clr):
+    x = int(clr[0] * 256)
+    y = int(clr[1] * 256)
+    z = int(clr[2] * 256)
+
+    s = ''
+    s += (hex(x)[2:len(hex(x))])
+    s += (hex(y)[2:len(hex(y))])
+    s += (hex(z)[2:len(hex(z))])
+
+    return s
 
 class BtnArea(GridLayout):
     pass
@@ -268,10 +286,6 @@ class CalGame(GridLayout):  # main class
 
     j = None
 
-    def printdj(dj):
-        if (dj != None):
-            print(dj)
-
     def on_touch_down(self, touch):
         if (self.j != None):
             # TODO: check for ctrl or other modfier to bypass
@@ -279,7 +293,6 @@ class CalGame(GridLayout):  # main class
 
             # event under cursor
             spawnjw(self, self.j)
-            print(self.j)
         else:
             # otherwise propagate touch
             return super(CalGame, self).on_touch_down(touch)
@@ -517,8 +530,8 @@ class SubmitBtn(Button):
         q = q + '\',\'' + timereq + '\','
         q = q + ' STR_TO_DATE(\''
         q = q + datestr + '\', \'%Y/%m/%d %T\'), NULL);'
-        print('QUERY: ')
-        print(q)
+#         print('QUERY: ')
+#         print(q)
         db.query(q)
         db.cnx.commit()
 
@@ -604,19 +617,45 @@ class NW(StackLayout):
     date = arrow.get()
     lbltext = StringProperty()
 
+    v = OptionProperty("middle", options=["middle", "top"])# 'top' # middle/top
+    h = OptionProperty("center", options=["center", "left"])# 'center' # center/left
+
+
     def draw(self, jobitems):
         self.lbltext = '[size=24][b]No jobs on ' + str(self.date) + '[/b][/size]'
+        # self.v = 'middle'
         if (len(jobitems) > 0):
-            self.lbltext = '[size=32][b]Tasks on ' + str(self.date) + ' :\n[/b][/size]'
-            for item in jobitems:
-                self.lbltext += '[size=24][b]' + str(item.name) + '[/size][/b]'
-                self.lbltext += '\nDue ' + str(item.doBy.format('D MMMM YYYY'))
-                self.lbltext += ' at ' + str(item.doBy.format('h:mm A'))
 
-                self.lbltext += ' (' + str(item.doBy.humanize()) + ')' + '\n\n'
+            # self.v = 'top'
+            self.v = 'top'
+            self.h = 'left'
+            self.lbltext = '[size=32][b]Tasks on ' + str(self.date) + ' :\n[/b][/size]'
+
+            # sort by key doBy
+            for item in sorted(jobitems, key=lambda sort: sort.doBy):
+                self.lbltext += '[size=24][b][color='+ hexc(item.clr) + ']'
+                self.lbltext += str(item.name) + '[/color][/b][/size]'
+                if (item.doBy.date() == self.date):
+                    self.lbltext += '\n[color=''ffffff'']Due '
+                    self.lbltext += '[b]this day[/b]' # str(item.doBy.format('D MMMM YYYY'))
+                else:
+                    self.lbltext += '\n[color=''ffffff'']Due '
+                    self.lbltext += str(item.doBy.format('D MMMM YYYY'))
+
+                self.lbltext += ' at ' + str(item.doBy.format('h:mm A'))
+                self.lbltext += ' (' + str(item.doBy.humanize())
+                if (item.doBy.date() == self.date):
+                    self.lbltext += ')[/color]\n\n'
+                else:
+                    self.lbltext += '/' + str(item.timeLeft(self.date))
+                    self.lbltext += ' from this date)[/color]' + '\n\n'
                 # str(item.doBy.format('M/D/YY HH:mm')) + \
 
                 # self.lbltext += item.doBy.humanize(self.date) + '\n'
+        else:
+            self.v = 'middle'
+            self.h = 'center'
+
                
 
 
@@ -624,21 +663,48 @@ class NW2(StackLayout):
     lbltext = StringProperty()
     jb = ObjectProperty()
 
-    def draw(self, job):
-        self. jb = job
+    c0 = 0
+    c1 = 0
+    c2 = 0
+    c3 = 0
 
-        trs = str(job.timeReq/86400.) + ' days' # time req simplified
-        mswd = arrow.get(job.doBy.timestamp - job.timeReq)
-        mswdd = mswd.format('d MMMM YYYY')
-        mswdt = mswd.format('h:mm A')
+    ig = InstructionGroup()
+
+    def rm(self, insgrp):
+        self.canvas.before.remove(insgrp)
+        insgrp.clear()
+
+    def draw(self, job):
+        self.rm(self.ig) # removes the insgrp from canvas
+        self.ig.clear() # clears the insgrp
+
+        self.jb = job
+        self.c0 = job.clr[0]
+        self.c1 = job.clr[1]
+        self.c2 = job.clr[2]
+
+        self.ig.add(Color(self.c0,self.c1,self.c2, 0.7))
+        self.ig.add(Rectangle(size=self.size, pos=self.pos))
+
+        self.canvas.before.add(self.ig)
+
+        if (job.timeReq > 0):
+            trs = str(job.timeReq/86400.) + ' days' # time req simplified
+            mswd = arrow.get(job.doBy.timestamp - job.timeReq)
+            mswdd = mswd.format('d MMMM YYYY')
+            mswdt = mswd.format('h:mm A')
         self.lbltext = ''
-        # print(self.lbltext)
-        self.lbltext += '[b][size=24]' + str(job.name) + '[/size][/b]\n'
-        self.lbltext += 'Due ' + str(job.doBy.format('D MMMM YYYY'))
-        self.lbltext += ' at ' + str(job.doBy.format('h:mm A')) + '\n\n'
-        self.lbltext += 'Approximately ' + trs + ' to complete' + '\n'
-        self.lbltext += 'Latest date to start is ' + str(mswdd)
-        self.lbltext += ' at ' + str(mswdt)
+        self.lbltext += '[color=444444][b][size=24]' + str(job.name) + '[/size][/b]\n'
+        if (job.timeReq > 0):
+            self.lbltext += 'Due ' + str(job.doBy.format('D MMMM YYYY'))
+        else:
+            self.lbltext += ' at ' + str(job.doBy.format('h:mm A'))
+        self.lbltext += ' (' + job.doBy.humanize() + ')\n\n'
+        if (job.timeReq > 0):
+            self.lbltext += 'Approximately ' + trs + ' to complete' + '\n'
+            self.lbltext += 'Latest date to start is ' + str(mswdd)
+            self.lbltext += ' at ' + str(mswdt) + ' ('
+            self.lbltext += mswd.humanize() + ')[/color]\n\n'
 
 
 nw = NW(size=(Window.width*.85,Window.height*.85))
@@ -676,14 +742,18 @@ class EWB(Button):
     def delayed(self, dt):
         cm = self.parent.parent.children[2] # calmain
         cm.getspace(self.yr, self.mnth)
-        cm.makemarks(self.yr, self.mnth)
 
     def on_release(self):
         self.cm = self.parent.parent.children[2] # calmain
         self.getshift()
         self.dates()
         self.cm.kivycalpop(self.yr, self.mnth)
-        Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
+        global delaymode
+        if (delaymode):
+            Clock.schedule_once(self.delayed, .01)  # TODO: refine delay
+        else:
+            self.delayed(0)
+
         # sm = self.parent.parent.parent.parent
         # self.parent.children[1].makemarks()
         # sm.current = '2'
@@ -751,6 +821,24 @@ class DayBtn(Button):  # day button class
             mw = int(self.width*0.8)
         mw = mw * job.s
         mh = mw
+        oh = mh
+
+###########################
+# stuff for when there are more than 1 jobs due in a day
+
+        posi = (self.x + self.width/2 - mw/2,
+                self.y + self.height/2 - mh/2)
+
+        if ((len(dodwj[self.arwin])) > 1):
+            if (job == dodwj[self.arwin][2]):
+                oh = mh
+                mh = mh * (1/len(dodwj[self.arwin]))
+
+                posi = (self.x + self.width/2 - mw/2,
+                        self.y + self.height/2 - oh/2)
+
+###########################
+
         totalspacing = mw * 0.03
         spacing = totalspacing + totalspacing
         bh = (mw-spacing-spacing)/3.  # bar height
@@ -776,15 +864,16 @@ class DayBtn(Button):  # day button class
             # draw indicator
             insgrpalt.add(RoundedRectangle(size=(mw,
                                      mh),
-                                     pos=(self.x+self.width/2-mw/2,
-                                          self.y+self.height/2-mh/2),
+                                     pos=(posi),
                                      radius=(rad, rad)))
 
             # mouseover stuff
             # main srp (square render position)
             # its a range of the x and then the y value
             xrs = self.x+self.width/2-mw/2 # x range start
-            yrs = self.y+self.height/2-mh/2 # y range start
+            # yrs = self.y+self.height/2-mh/2 # y range start
+            yrs = self.y+self.height/2 - oh/2
+            # self.y + self.height/2 - oh/2)
             job.srp = ((xrs, xrs + mw), (yrs, yrs + mh))
  
             bw = self.width*.5 # so that the last cell does not overlap
@@ -978,7 +1067,6 @@ class CalApp(App):
 
     def delayed(self, dt):
         self.calmain.getspace(self.cy, self.cm)
-        self.calmain.makemarks(self.cy, self.cm)
 
     def checker(self, dt):
 #         fps display, useful
@@ -993,7 +1081,8 @@ class CalApp(App):
         tx = Window.mouse_pos[0]
         ty = Window.mouse_pos[1]
 
-        for job in joblist:
+        # reversed is [::-1] might break stuff later
+        for job in joblist[::-1]:
             if (detected == 'square'):
                 break
             if (dj == None):
@@ -1037,7 +1126,8 @@ class CalApp(App):
         self.calmain.makemarks(self.cy, self.cm) # only need once per check
         self.calmain.j = dj
         if (self.calmain.j != None):
-            self.ia.txt = str(self.calmain.j.name)
+            self.ia.txt = '[color=' + hexc(self.calmain.j.clr) + ']'
+            self.ia.txt += str(self.calmain.j.name) + '[/color]'
         else:
             self.ia.txt = '--'
         if (dj != None):
@@ -1080,8 +1170,13 @@ class CalApp(App):
             Rectangle(pos=(0, 0), size=Window.size)
 
         self.calmain.kivycalpop(curryr, currmnth)
-        Clock.schedule_once(self.delayed, .1)  # TODO: refine delay
+        global delaymode
+        if (delaymode):
+            Clock.schedule_once(self.delayed, .1)  # TODO: refine delay
+        else:
+            self.delayed(0)
         Clock.schedule_interval(self.checker, 1/60)  # TODO: refine delay
+
         return sm
 
 
@@ -1142,11 +1237,13 @@ class Job:
         self.srp = None # square render pos
         self.s = 1
 
-    # time left (calculated from current time)
-    def timeLeft(self):
+        self.key = job_id
 
-        self.timeUntil = self.doBy - datetime.datetime.today()
-        return self.timeUntil
+    # time left (calculated from current time)
+    def timeLeft(self, date):
+
+        dated = arrow.get(date.year, date.month, date.day, 0,0,0,0,tz.tzlocal())
+        return self.doBy.humanize(dated)
 
 # time left (calculatd from a specific time)
     def timeLeftFromTime(self, year, month, day,
@@ -1173,7 +1270,8 @@ class Job:
         self.outstr += str(self.doBy.minute) + " ("
         self.outstr += str(self.doBy.humanize()) + ") | "
         self.outstr += "Time required: "
-        self.outstr += trs
+        self.outstr += trs + ' | '
+        self.outstr += str(self.key)
         # self.outstr += str(self.doBy.second) + " timeReq="
         # self.outstr += str(self.doBy.microsecond) + " "
         # self.outstr += str(self.doBy.tzinfo)
@@ -1184,7 +1282,7 @@ class Job:
 
 def deldbitem(self, job):
     # CONTINUE
-    q = 'DELETE FROM wt WHERE name = "' + str(job.name) + '";'
+    q = 'DELETE FROM wt WHERE job_id = "' + str(job.key) + '";'
     db.query(q)
     db.cnx.commit()
     refreshjoblist(joblist, doBylist, dodwj, daydict)
@@ -1318,6 +1416,7 @@ def ntf2(self, arwin):  # new test function
 
 
 def refreshjoblist(joblist, doBylist, dodwj, daydict):
+    printdebug = False
     # pull data from sql db
     q = """
     SELECT * from wt;
@@ -1333,7 +1432,8 @@ def refreshjoblist(joblist, doBylist, dodwj, daydict):
 
     # add items from sql db to joblist
     for item in dbdata:
-        print(item)
+        if(printdebug):
+            print(item)
         joblist.append(Job(item[0], arrow.get(item[2], tz.tzlocal()),
                        item[1], item[3]))
 
@@ -1360,11 +1460,12 @@ def refreshjoblist(joblist, doBylist, dodwj, daydict):
 
     # - when populating cal, change color when there is event
 
-    print("#########################")
-    print("refreshed job DB. items: ")
-    print("#########################")
-    for item in joblist:
-        print(item)
+    if(printdebug):
+        print("#########################")
+        print("refreshed job DB. items: ")
+        print("#########################")
+        for item in joblist:
+            print(item)
 
 if __name__ == "__main__":
     db = Database()  # custom database class (mysql)
