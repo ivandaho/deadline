@@ -1098,7 +1098,7 @@ class CalApp(App):
             for job in joblist:
                 if (dj is None):
                     # then only look for line.
-                    if (foundsquare is not False):
+                    if (foundsquare is False):
                         if (len(job.brp) > 0):
                             for cell in job.brp:
                                 if (tx >= cell[0][0] and tx <= cell[0][1]):
