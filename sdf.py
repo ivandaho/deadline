@@ -18,7 +18,10 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.stacklayout import StackLayout
-from kivy.properties import ObjectProperty, StringProperty, NumericProperty, OptionProperty
+from kivy.properties import (
+        ObjectProperty, StringProperty, NumericProperty,
+        OptionProperty
+)
 import sys
 
 from kivy.core.window import Window
@@ -139,7 +142,6 @@ Builder.load_string("""
     Label:
         id: md
         color:(1,1,1,1)
-        
         text: self.parent.mnthtext
 
 
@@ -205,8 +207,10 @@ Builder.load_string("""
 
 delaymode = False
 
+
 class NL(Label):
     pass
+
 
 def checkl():
     if (Window.width > Window.height):
@@ -221,6 +225,7 @@ def rgb256to1(x, y, z):
     z = 1 / 256 * z
     return x, y, z, 0.5
 
+
 def hexc(clr):
     x = int(clr[0] * 256)
     y = int(clr[1] * 256)
@@ -233,13 +238,16 @@ def hexc(clr):
 
     return s
 
+
 class BtnArea(GridLayout):
     pass
+
 
 class InfoArea(GridLayout):
     ilb = ObjectProperty(None)
     txt = StringProperty()
     pass
+
 
 class CalGame(GridLayout):  # main class
     cl = []
@@ -276,18 +284,18 @@ class CalGame(GridLayout):  # main class
     seed = 20
     dater = ObjectProperty()
 
-    ig0 = InstructionGroup() # white background
+    ig0 = InstructionGroup()  # white background
     ig1 = InstructionGroup()
     ig2 = InstructionGroup()
     ig2alt = InstructionGroup()
     ig3 = InstructionGroup()
-    ig0.add(Color(1,1,1,1))
-    ig0.add(Rectangle(size=(Window.width,Window.height * 0.89)))
+    ig0.add(Color(1, 1, 1, 1))
+    ig0.add(Rectangle(size=(Window.width, Window.height * 0.89)))
 
     j = None
 
     def on_touch_down(self, touch):
-        if (self.j != None):
+        if (self.j is not None):
             # TODO: check for ctrl or other modfier to bypass
             #       for buttons that are harder to click on directly
 
@@ -298,7 +306,7 @@ class CalGame(GridLayout):  # main class
             return super(CalGame, self).on_touch_down(touch)
 
     def kivycalpop(self, yr, mnth):
-        ba = self.parent.children[4] # button area
+        ba = self.parent.children[4]  # button area
         ba.md.text = str(self.dater.month) + '/' + str(self.dater.year)
         # for refresh, don't really the next 2 lines need because
         # it will happen later, but the later thing is scheduled
@@ -308,7 +316,7 @@ class CalGame(GridLayout):  # main class
         self.canvas.add(self.ig0)
 
         # remove widgets for refresh
-        for x in range (0,len(self.children)):
+        for x in range(0, len(self.children)):
             self.remove_widget(self.children[0])
         # this is for the calendar buttons only
         gridindex = dofotm_specific(yr, mnth) + 1
@@ -320,7 +328,7 @@ class CalGame(GridLayout):  # main class
         # mnth = arrow.get(yr, mnth, 1).month
 
         while (currday <= ditm_specific(yr, mnth)):
-            arwdate = arrow.get(yr, mnth, currday, 0,0,0,0, tz.tzlocal())
+            arwdate = arrow.get(yr, mnth, currday, 0, 0, 0, 0, tz.tzlocal())
             arwdate = arwdate.date()
             # arwdate = arrow.get(yr, mnth, currday).date()
 
@@ -343,32 +351,32 @@ class CalGame(GridLayout):  # main class
         for job in joblist:
             job.brp = []
             job.srp = None
-        self.rm(self.ig1) # removes the insgrp from canvas
+        self.rm(self.ig1)  # removes the insgrp from canvas
         self.rm(self.ig2)
         self.rm(self.ig2alt)
         # getspace(self, yr, mnth) # only needed once
-        self.ig1.clear() # clears the insgrp
+        self.ig1.clear()  # clears the insgrp
         self.ig2alt.clear()
         self.ig2.clear()
 
         for child in self.children:
             if (isinstance(child, DayBtn)):
                 if (child.arwin == arrow.get(tz.tzlocal()).date()):
-                # draw today's marker
+                    # draw today's marker
                     child.drawtodaymarker(self.ig1)
 
-########## old draw method based on event ##################################
+# ################# old draw method based on event #########################
 #                 # if event(s) found on this daybtn
 #                 # child is DayBtn
 #                 # contains datetime.datetime in input
 #                 for event in dodwj[child.arwin]:
 #                     # event is i number, doesnt contain job data
 #                     # job data is in dodwj[child.input][event]
-# 
+#
 #                     # add instructon for each event
 #                     child.drawnew(dodwj[child.arwin][event], self.ig2)
-# 
-################################ new draw method ###########################
+#
+# ############################## new draw method ###########################
 
                 if (len(daydict[child.arwin]) > 0):
                     ji = []
@@ -380,12 +388,10 @@ class CalGame(GridLayout):  # main class
                 for item in ji:
                     child.drawnewer(item, self.ig2, self.ig2alt, cleanvar)
 
-
-        self.canvas.add(self.ig1) # 2 is daymarker
-        self.canvas.add(self.ig2) # 2 is job related markers
-        self.canvas.add(self.ig2alt) # 2 is job related markers
+        self.canvas.add(self.ig1)  # 2 is daymarker
+        self.canvas.add(self.ig2)  # 2 is job related markers
+        self.canvas.add(self.ig2alt)  # 2 is job related markers
         # print('MADE MARKS!')
-
 
     def getspace(self, yr, mnth):
         # get days in this month first
@@ -395,13 +401,14 @@ class CalGame(GridLayout):  # main class
         # to see what jobs need to be done on what days
         currday = 1
         while (currday <= ditmvar):
-            datetocheck = arrow.get(yr, mnth, currday,0,0,0,0,tz.tzlocal())
+            # date to check
+            dtc = arrow.get(yr, mnth, currday, 0, 0, 0, 0, tz.tzlocal())
             jobstodo = []
 
             for job in joblist:
                 # minimum start work date in int
                 # compensate for time zone headache (TODO: solve later)
-                # this is to calculate line number 
+                # this is to calculate line number
                 # (for days with multiple jobs)
                 mswd = arrow.get(job.doBy.timestamp - job.timeReq)
                 dobyarrow = (arrow.get(job.doBy))
@@ -412,26 +419,25 @@ class CalGame(GridLayout):  # main class
                 # if the day is a working day
                 # x > y means x is more recent than y
 
-                # datetocheck.floor('day') to get a date that is 00:00
-                if (datetocheck.floor('day') <= dobyarrow):
+                # dtc.floor('day') to get a date that is 00:00
+                if (dtc.floor('day') <= dobyarrow):
                     # if there is a job due after this day's 0:00
 
-                    if (datetocheck.floor('day') >= mswd):
+                    if (dtc.floor('day') >= mswd):
                         jobstodo.append(job)
 
                     # why did i do this?
-                    if (datetocheck.floor('day').replace(days=1) >= dobyarrow):
+                    if (dtc.floor('day').replace(days=1) >= dobyarrow):
                         if job in jobstodo:
                             jobstodo.remove(job)
                         jobstodo.append(job)
                         pass
 
-
-                daydict[datetocheck.date()] = jobstodo 
+                daydict[dtc.date()] = jobstodo
 
             x = 1
             tj = 0
-            for item in daydict[datetocheck.date()]:
+            for item in daydict[dtc.date()]:
                 tj = tj + 1
                 if (item.line == 0):
                     item.line = x
@@ -442,7 +448,7 @@ class CalGame(GridLayout):  # main class
 
             currday = currday + 1
 
-        
+
 class InputFields(BoxLayout):
     this = StringProperty('unmodded')
 
@@ -456,6 +462,7 @@ class BackBtn(Button):
     def on_release(self):
         sm = self.parent.parent.parent
         sm.current = '1'
+
 
 class SubmitBtn(Button):
 
@@ -481,7 +488,7 @@ class SubmitBtn(Button):
                 if (source[x].isdigit()):
                     dstart = x
                     x = x - 1
-                else: 
+                else:
                     break
 
             d = source[dstart:dpos]
@@ -494,11 +501,11 @@ class SubmitBtn(Button):
                 if (source[x].isdigit()):
                     hstart = x
                     x = x - 1
-                else: 
+                else:
                     break
 
             h = source[hstart:hpos]
-        
+
         if (source.find('m') != -1):
             # if found 'm'
             mpos = source.find('m')
@@ -507,23 +514,19 @@ class SubmitBtn(Button):
                 if (source[x].isdigit()):
                     mstart = x
                     x = x - 1
-                else: 
+                else:
                     break
 
             m = source[mstart:mpos]
 
         tt = int(d) * 86400 + int(h) * 3600 + int(m) * 60
         return str(tt)
-        
 
     def on_release(self):
 
         name = self.parent.children[2].children[2].text
         timereq = self.calctimereq(self.parent.children[2].children[0].text)
         datestr = self.datevar.format('YYYY/MM/DD HH:mm:ss')
-        # datestr = '2016/03/25 08:00:00' # event.begin.format('YYYY/MM/DD HH:mm:ss')
-        #jobtype = self.parent.children[2].children[0].children[1].text timereq = self.parent.children[2].children[0].children[0].text
-        # q = "INSERT INTO wt VALUES('" + str(name) + "','" + str(timereq) + "', STR_TO_DATE('2016/03/25 08:00:00', '%Y/%m/%d %T'), NULL"
 
         q = 'INSERT INTO wt VALUES(\''
         q = q + name
@@ -547,9 +550,11 @@ class SubmitBtn(Button):
         refwid.children[0].children[2].getspace(dater.year, dater.month)
         refwid.children[0].children[2].makemarks(dater.year, dater.month)
 
+
 class ModBtn(Button):
     def on_release(self):
         pass
+
 
 class DelBtn(Button):
 
@@ -562,15 +567,17 @@ class DelBtn(Button):
         for job in joblist:
             if (job == self.parent.parent.parent.jb):
                 joblist.remove(self.parent.parent.parent.jb)
+                break
 
         refwid = self.parent.parent.parent.parent
         refwid.remove_widget(nw2)
-        
+
         cm = refwid.children[0].children[2]
         dater = cm.dater
 
         # makemarks is always happening, but need getspace to refresh
         cm.getspace(dater.year, dater.month)
+
 
 class AddBtn(Button):
     def on_release(self):
@@ -595,7 +602,7 @@ class AddBtn(Button):
         typew.text = 'modded typew'
         dobyw.text = 'Enter info for new job on ' + str(nw.date)
         namew.text = 'modded namew2'
-        
+
 
 class NWLabel(Label):
     def on_touch_down(self, touch):
@@ -605,39 +612,39 @@ class NWLabel(Label):
         self.parent.parent.parent.remove_widget(nw)
         return True  # eats touch
 
+
 class NWLabel2(Label):
     def on_touch_down(self, touch):
         self.parent.parent.parent.remove_widget(nw2)
         return True  # eats touch
 
 
-
-
 class NW(StackLayout):
     date = arrow.get()
     lbltext = StringProperty()
 
-    v = OptionProperty("middle", options=["middle", "top"])# 'top' # middle/top
-    h = OptionProperty("center", options=["center", "left"])# 'center' # center/left
-
+    v = OptionProperty("middle", options=["middle", "top"])  # middle/top
+    h = OptionProperty("center", options=["center", "left"])  # center/left
 
     def draw(self, jobitems):
-        self.lbltext = '[size=24][b]No jobs on ' + str(self.date) + '[/b][/size]'
+        self.lbltext = '[size=24][b]No jobs on '
+        self.lbltext += str(self.date) + '[/b][/size]'
         # self.v = 'middle'
         if (len(jobitems) > 0):
 
             # self.v = 'top'
             self.v = 'top'
             self.h = 'left'
-            self.lbltext = '[size=32][b]Tasks on ' + str(self.date) + ' :\n[/b][/size]'
+            self.lbltext = '[size=32][b]Tasks on '
+            self.lbltext += str(self.date) + ' :\n[/b][/size]'
 
             # sort by key doBy
             for item in sorted(jobitems, key=lambda sort: sort.doBy):
-                self.lbltext += '[size=24][b][color='+ hexc(item.clr) + ']'
+                self.lbltext += '[size=24][b][color=' + hexc(item.clr) + ']'
                 self.lbltext += str(item.name) + '[/color][/b][/size]'
                 if (item.doBy.date() == self.date):
                     self.lbltext += '\n[color=''ffffff'']Due '
-                    self.lbltext += '[b]this day[/b]' # str(item.doBy.format('D MMMM YYYY'))
+                    self.lbltext += '[b]this day[/b]'
                 else:
                     self.lbltext += '\n[color=''ffffff'']Due '
                     self.lbltext += str(item.doBy.format('D MMMM YYYY'))
@@ -656,8 +663,6 @@ class NW(StackLayout):
             self.v = 'middle'
             self.h = 'center'
 
-               
-
 
 class NW2(StackLayout):
     lbltext = StringProperty()
@@ -675,26 +680,27 @@ class NW2(StackLayout):
         insgrp.clear()
 
     def draw(self, job):
-        self.rm(self.ig) # removes the insgrp from canvas
-        self.ig.clear() # clears the insgrp
+        self.rm(self.ig)  # removes the insgrp from canvas
+        self.ig.clear()  # clears the insgrp
 
         self.jb = job
         self.c0 = job.clr[0]
         self.c1 = job.clr[1]
         self.c2 = job.clr[2]
 
-        self.ig.add(Color(self.c0,self.c1,self.c2, 0.7))
+        self.ig.add(Color(self.c0, self.c1, self.c2, 0.7))
         self.ig.add(Rectangle(size=self.size, pos=self.pos))
 
         self.canvas.before.add(self.ig)
 
         if (job.timeReq > 0):
-            trs = str(job.timeReq/86400.) + ' days' # time req simplified
+            trs = str(job.timeReq/86400.) + ' days'  # time req simplified
             mswd = arrow.get(job.doBy.timestamp - job.timeReq)
             mswdd = mswd.format('d MMMM YYYY')
             mswdt = mswd.format('h:mm A')
         self.lbltext = ''
-        self.lbltext += '[color=444444][b][size=24]' + str(job.name) + '[/size][/b]\n'
+        self.lbltext += '[color=444444][b][size=24]'
+        self.lbltext += str(job.name) + '[/size][/b]\n'
         if (job.timeReq > 0):
             self.lbltext += 'Due ' + str(job.doBy.format('D MMMM YYYY'))
         else:
@@ -707,19 +713,21 @@ class NW2(StackLayout):
             self.lbltext += mswd.humanize() + ')[/color]\n\n'
 
 
-nw = NW(size=(Window.width*.85,Window.height*.85))
+nw = NW(size=(Window.width*.85, Window.height*.85))
 nw.size_hint = (None, None)
-nw.pos = (Window.width/2 - nw.width/2, Window.height/2 - nw.height/2)# + EWB.height)
+nw.pos = (Window.width/2 - nw.width/2, Window.height/2 - nw.height/2)
 
-nw2 = NW2(size=(Window.width*.85,Window.height*.85))
+nw2 = NW2(size=(Window.width*.85, Window.height*.85))
 nw2.size_hint = (None, None)
 nw2.pos = (Window.width/2 - nw2.width/2, Window.height/2 - nw2.height/2)
 cleanvar = False
+
 
 def spawnnw(self, jobitems, arwin):
     nw.date = arwin
     nw.draw(jobitems)
     self.parent.parent.parent.add_widget(nw)
+
 
 def spawnjw(self, job):
     nw2.draw(job)
@@ -740,11 +748,11 @@ class EWB(Button):
         self.mnth = self.cm.dater.month
 
     def delayed(self, dt):
-        cm = self.parent.parent.children[2] # calmain
+        cm = self.parent.parent.children[2]  # calmain
         cm.getspace(self.yr, self.mnth)
 
     def on_release(self):
-        self.cm = self.parent.parent.children[2] # calmain
+        self.cm = self.parent.parent.children[2]  # calmain
         self.getshift()
         self.dates()
         self.cm.kivycalpop(self.yr, self.mnth)
@@ -764,23 +772,28 @@ class EWB(Button):
 class RedrawBtn(Button):
     def on_release(self):
         global cleanvar
-        if (cleanvar == True):
+        if (cleanvar):
             cleanvar = False
         else:
             cleanvar = True
 
+
 class DayLabel(Label):  # empty widget class
     pass
+
 
 class MonthDisplay(BoxLayout):
     md = ObjectProperty(None)
     mnthtext = StringProperty()
 
+
 class DayDisplay(BoxLayout):
     pass
 
+
 class EW(Widget):  # empty widget class
         pass
+
 
 class TBWidget(Widget):
     lab = StringProperty()
@@ -788,7 +801,7 @@ class TBWidget(Widget):
 
 class DayBtn(Button):  # day button class
     arwin = ObjectProperty()
-    #background_color = (1, 1, 1, 1) ????? why did I add this before
+    # background_color = (1, 1, 1, 1) ????? why did I add this before
     text_size = (int(Window.width*0.7*0.15), int(Window.height*0.7*0.13))
     halign = 'right'
     valign = 'top'
@@ -800,14 +813,13 @@ class DayBtn(Button):  # day button class
 
     def drawtodaymarker(self, insgrp):
         insgrp.add(Color(1, 1, 1, 0.4))
-        scale = 0.9 # scale * button width/height, whichever is lower
+        scale = 0.9  # scale * button width/height, whichever is lower
         x = self.width*scale
         y = self.height - self.width + x
 
-        insgrp.add(Rectangle(size=(x,
-                              y),
-                        pos=(self.x + self.width/2 - x/2,
-                             self.y + self.height/2 - y/2)))
+        insgrp.add(Rectangle(size=(x, y),
+                             pos=(self.x + self.width/2 - x/2,
+                                  self.y + self.height/2 - y/2)))
 
     def drawnewer(self, job, insgrp, insgrpalt, clean):
         ri = self.parent.seed
@@ -846,63 +858,58 @@ class DayBtn(Button):  # day button class
         bos = self.height/2-mh/2  # base offset
         jlos = bh + spacing  # job line offset
 
-        if (job.clr == None):
+        if (job.clr is None):
             # dont reroll colors if already have color
             job.clr = self.parent.cl[ri][0],\
                 self.parent.cl[ri][1],\
                 self.parent.cl[ri][2]
 
-        insgrp.add(Color(job.clr[0],job.clr[1],job.clr[2]))
-        insgrpalt.add(Color(job.clr[0],job.clr[1],job.clr[2]))
+        insgrp.add(Color(job.clr[0], job.clr[1], job.clr[2]))
+        insgrpalt.add(Color(job.clr[0], job.clr[1], job.clr[2]))
 
         xos = 0
         mswd = arrow.get(job.doBy.timestamp - job.timeReq)
 
         if (job.doBy.date() == self.arwin):
-            # if the date due is on current day 
+            # if the date due is on current day
             rad = int(mw*0.2027)
             # draw indicator
-            insgrpalt.add(RoundedRectangle(size=(mw,
-                                     mh),
-                                     pos=(posi),
-                                     radius=(rad, rad)))
+            insgrpalt.add(RoundedRectangle(size=(mw, mh),
+                                           pos=(posi),
+                                           radius=(rad, rad)))
 
             # mouseover stuff
             # main srp (square render position)
             # its a range of the x and then the y value
-            xrs = self.x+self.width/2-mw/2 # x range start
+            xrs = self.x+self.width/2-mw/2  # x range start
             # yrs = self.y+self.height/2-mh/2 # y range start
             yrs = self.y+self.height/2 - oh/2
             # self.y + self.height/2 - oh/2)
             job.srp = ((xrs, xrs + mw), (yrs, yrs + mh))
- 
-            bw = self.width*.5 # so that the last cell does not overlap
+
+            bw = self.width*.5  # so that the last cell does not overlap
 
             if (job.timeReq == 0):
                 bw = 0
-
 
         elif (mswd.date() == self.arwin):
             frac = mswd.timestamp - mswd.floor('day').timestamp
             bw = (frac/86400.*self.width)
             xos = self.width - bw
 
-
         # clean = False
         if not (cleanvar):
-            insgrp.add(Rectangle(size=(bw,
-                                    bh),
-                              pos=(self.x + xos,
-                                   self.y + bos +
-                                   (job.line - 1) * jlos)))
-            
+            insgrp.add(Rectangle(size=(bw, bh),
+                                 pos=(self.x + xos,
+                                      self.y + bos +
+                                      (job.line - 1) * jlos)))
+
             # mouseover stuff
             # line brp (bar render position
-            xrs = self.x+xos # x range start
-            yrs = self.y + bos + (job.line - 1) * jlos # y range start
+            xrs = self.x+xos  # x range start
+            yrs = self.y + bos + (job.line - 1) * jlos  # y range start
             job.brp.append(((xrs, xrs+bw), (yrs, yrs + bh)))
 
-        
     def drawnew(self, job, insgrp):
         # doesnt actually draw but only add instrucions.
         # ############### COLOR STUFF ############## #
@@ -917,15 +924,15 @@ class DayBtn(Button):  # day button class
         if (self.parent.seed == len(self.parent.cl)-1):
             self.parent.seed = 0
         # ri = random.randint(0, len(self.parent.cl)-1)
-        #self.parent.cl.pop(ri)
+        # self.parent.cl.pop(ri)
 
-        if (job.clr == None):
+        if (job.clr is None):
             # dont reroll colors if already have  color
             job.clr = self.parent.cl[ri][0],\
                 self.parent.cl[ri][1],\
                 self.parent.cl[ri][2]
 
-        insgrp.add(Color(job.clr[0],job.clr[1],job.clr[2]))
+        insgrp.add(Color(job.clr[0], job.clr[1], job.clr[2]))
 
         # roundedrect marker to indicate doBy
         if(checkl()):
@@ -934,11 +941,10 @@ class DayBtn(Button):  # day button class
             mw = int(self.width*0.8)
         mh = mw
         rad = int(mw*0.2027)
-        insgrp.add(RoundedRectangle(size=(mw,
-                                 mh),
-                                 pos=(self.x+self.width/2-mw/2,
-                                      self.y+self.height/2-mh/2),
-                                 radius=(rad, rad)))
+        insgrp.add(RoundedRectangle(size=(mw, mh),
+                                    pos=(self.x+self.width/2-mw/2,
+                                         self.y+self.height/2-mh/2),
+                                    radius=(rad, rad)))
 
         # calculate timereq indicator stuff...
         clean = False
@@ -967,7 +973,7 @@ class DayBtn(Button):  # day button class
             bh = (mw-spacing-spacing)/3.  # bar height
 
             ##################
-            # h1 = self.y+self.height/2-mh/2 # make btm flush with main indicator
+            # h1 = self.y+self.height/2-mh/2 # make btm flush with main square
             jlos = bh + spacing  # job line offset
             bos = self.height/2-mh/2  # base offset
 
@@ -976,7 +982,7 @@ class DayBtn(Button):  # day button class
                 btmbar = maxtrw
                 remain = trw - maxtrw  # width of remain trw
                 fullbars = int(remain/self.parent.width)  # number of full bars
-                topbar = remain - fullbars*self.parent.width   # width of top bar
+                topbar = remain - fullbars*self.parent.width  # <--> of top bar
 
                 iteration = fullbars + 1    # number of full bars + top bar
                 # this is if can't fit.
@@ -987,37 +993,36 @@ class DayBtn(Button):  # day button class
                         # TODO: when bars extend across months
                         # dont draw full bars. draw last(top) bar.
                         insgrp.add(Color(job.clr[0],
-                                      job.clr[1],
-                                      job.clr[2],))
-                        insgrp.add(Rectangle(size=(topbar,
-                                                bh),
-                                          pos=(self.parent.width - topbar,
-                                               self.y + bos +
-                                               (job.line - 1) * jlos +
-                                               self.parent.height / 5. * x)))
+                                         job.clr[1],
+                                         job.clr[2],))
+                        insgrp.add(Rectangle(size=(topbar, bh),
+                                             pos=(self.parent.width - topbar,
+                                                  self.y + bos +
+                                                  (job.line - 1) * jlos +
+                                                  self.parent.height / 5 * x)))
                     else:
                         # draw full bars
                         insgrp.add(Color(job.clr[0],
-                                      job.clr[1],
-                                      job.clr[2],))
-                        insgrp.add(Rectangle(size=(self.parent.width,
-                                                bh),
-                                          pos=(0,
-                                               self.y + bos +
-                                               (job.line - 1) * jlos +
-                                               self.parent.height / 5. * x)))
+                                         job.clr[1],
+                                         job.clr[2],))
+                        insgrp.add(Rectangle(size=(self.parent.width, bh),
+                                             pos=(0,
+                                                  self.y + bos +
+                                                  (job.line - 1) * jlos +
+                                                  self.parent.height / 5 * x)))
 
             btmbar = trw
             if (btmbar > maxtrw):
                 btmbar = maxtrw
             insgrp.add(Color(job.clr[0],
-                          job.clr[1],
-                          job.clr[2],))
+                             job.clr[1],
+                             job.clr[2],))
 
             if (job.timeReq > 0):  # if job requires time
                 # TODO: timeReq can be used for events? change this to
                 #       use a var like jobType or something
-                if (job.doBy.floor('day') <= arrow.get(job.doBy.timestamp - job.timeReq)):
+                if (job.doBy.floor('day') <=
+                        arrow.get(job.doBy.timestamp - job.timeReq)):
                     # TODO: figure out why I wrote this, too tired for now
                     fillx = 0
                     xpos = self.center_x-btmbar
@@ -1025,20 +1030,10 @@ class DayBtn(Button):  # day button class
                 else:
                     xpos = self.x-btmbar
 
-                insgrp.add(Rectangle(size=(btmbar+fillx,
-                                            bh),
-                                      pos=(xpos,
-                                           self.y + bos +
-                                           (job.line - 1) * jlos)))
-                                       # h1)))
-
-                # old method before March 16
-                #insgrp.add(Rectangle(size=(btmbar+fillx,
-                #                        bh),
-                #                  pos=(self.x-btmbar,
-                #                       self.y + bos +
-                #                       (job.line - 1) * jlos)))
-                #                       # h1)))
+                insgrp.add(Rectangle(size=(btmbar+fillx, bh),
+                                     pos=(xpos,
+                                          self.y + bos +
+                                          (job.line - 1) * jlos)))
 
 
 class FirstScreen(Screen):
@@ -1052,27 +1047,27 @@ class SecondScreen(Screen):
 class CalApp(App):
     # top info area
     date = arrow.get(tz.tzlocal())
-    cy = date.year # current year
-    cm = date.month # current month
-    dayinfo = DayDisplay(size_hint=(1,0.03))
-    monthinfo = MonthDisplay(size_hint=(1,0.08))
+    cy = date.year  # current year
+    cm = date.month  # current month
+    dayinfo = DayDisplay(size_hint=(1, 0.03))
+    monthinfo = MonthDisplay(size_hint=(1, 0.08))
 
     # main window area
     calmain = CalGame(cols=7, size_hint=(1, .55), dater=date)
-    ia = InfoArea(cols=3, size_hint=(1, .17)) # info area
+    ia = InfoArea(cols=3, size_hint=(1, .17))  # info area
 
-    ms = 1.155 # max mouseover scale
-    ss = 5. # scale steps
-    si = (ms - 1)/ss # scale interval amount
+    ms = 1.155  # max mouseover scale
+    ss = 5.  # scale steps
+    si = (ms - 1)/ss  # scale interval amount
 
     def delayed(self, dt):
         self.calmain.getspace(self.cy, self.cm)
 
     def checker(self, dt):
-#         fps display, useful
-#         fps = Clock.get_fps()
-#         if (fps < 60):
-#             print(fj is a variable in calmain/CalGaj is a variable in calmain/CalGame)
+        # fps display, useful
+        # fps = Clock.get_fps()
+        # if (fps < 60):
+        # print(fj is a variable in calmain/CalGame)
 
         foundsquare = False
         detected = None
@@ -1085,11 +1080,11 @@ class CalApp(App):
         for job in joblist[::-1]:
             if (detected == 'square'):
                 break
-            if (dj == None):
+            if (dj is None):
                 # for each job
                 # if still havent found a square
                 # search for square
-                if (job.srp != None):
+                if (job.srp is not None):
                     if (tx >= job.srp[0][0] and tx <= job.srp[0][1]):
                         if (ty >= job.srp[1][0] and ty <= job.srp[1][1]):
                             # found a square within bounds
@@ -1099,11 +1094,11 @@ class CalApp(App):
                             break
 
             # if there is no square after searching
-        if (foundsquare != True):
+        if (foundsquare is not True):
             for job in joblist:
-                if (dj == None):
+                if (dj is None):
                     # then only look for line.
-                    if (foundsquare == False):
+                    if (foundsquare is not False):
                         if (len(job.brp) > 0):
                             for cell in job.brp:
                                 if (tx >= cell[0][0] and tx <= cell[0][1]):
@@ -1113,27 +1108,25 @@ class CalApp(App):
 
         for job in joblist:
             if (dj == job):
-            # expand if mouseovered
+                # expand if mouseovered
                 if (dj.s < self.ms):
-                    dj.s = dj.s + self.si # expand variable
+                    dj.s = dj.s + self.si  # expand variable
 
             else:
-            # contract if not mouseovered
+                # contract if not mouseovered
                 if (job.s > 1):
                     job.s = job.s - self.si
 
-
-        self.calmain.makemarks(self.cy, self.cm) # only need once per check
+        self.calmain.makemarks(self.cy, self.cm)  # only need once per check
         self.calmain.j = dj
-        if (self.calmain.j != None):
+        if (self.calmain.j is not None):
             self.ia.txt = '[color=' + hexc(self.calmain.j.clr) + ']'
             self.ia.txt += str(self.calmain.j.name) + '[/color]'
         else:
             self.ia.txt = '--'
-        if (dj != None):
+        if (dj is not None):
             pass
-            #print('detected ' + detected + ' on ' + str(dj.name))
-
+            # print('detected ' + detected + ' on ' + str(dj.name))
 
     def build(self):
         sm = ScreenManager()
@@ -1178,7 +1171,6 @@ class CalApp(App):
         Clock.schedule_interval(self.checker, 1/60)  # TODO: refine delay
 
         return sm
-
 
 
 class Database:
@@ -1233,8 +1225,8 @@ class Job:
         self.line = 0
         self.clr = None
 
-        self.brp = [] # bar render pos
-        self.srp = None # square render pos
+        self.brp = []  # bar render pos
+        self.srp = None  # square render pos
         self.s = 1
 
         self.key = job_id
@@ -1242,7 +1234,8 @@ class Job:
     # time left (calculated from current time)
     def timeLeft(self, date):
 
-        dated = arrow.get(date.year, date.month, date.day, 0,0,0,0,tz.tzlocal())
+        dated = arrow.get(date.year, date.month, date.day,
+                          0, 0, 0, 0, tz.tzlocal())
         return self.doBy.humanize(dated)
 
 # time left (calculatd from a specific time)
@@ -1259,8 +1252,7 @@ class Job:
         if (self.name == ''):
             self.name == 'Unspecified'
 
-
-        trs = str(self.timeReq/86400.) + ' days' # time req simplified
+        trs = str(self.timeReq/86400.) + ' days'  # time req simplified
 
         self.outstr = self.name + " | Due on "
         self.outstr += str(self.doBy.year) + "-"
@@ -1280,14 +1272,16 @@ class Job:
 
 #####################################
 
+
 def deldbitem(self, job):
     # CONTINUE
     q = 'DELETE FROM wt WHERE job_id = "' + str(job.key) + '";'
     db.query(q)
     db.cnx.commit()
-    refreshjoblist(joblist, doBylist, dodwj, daydict)
+    # unneeded because we remove the job directly from the joblist
+    # refreshjoblist(joblist, doBylist, dodwj, daydict)
+    # TODO: make it such that the db is only accessed on open and exit
 
-    pass
 
 def initdbclass():
     q = "DELETE FROM wt"  # clear table before doing anything
@@ -1389,8 +1383,6 @@ def dofotm_specific(y, m):  # day of first of a specific month
 
 def ditm():  # days in this month
     return arrow.get().ceil('month').day
-    # return calendar.monthrange(datetime.datetime.today().year,
-                               # datetime.datetime.today().month)[1]
 
 
 def ditm_specific(y, m):  # days in this month
@@ -1423,8 +1415,7 @@ def refreshjoblist(joblist, doBylist, dodwj, daydict):
     """
     dbdata = db.query(q)
 
-
-    # delete all items in joblist 
+    # delete all items in joblist
     del joblist[0:len(joblist)]
     del doBylist[0:len(doBylist)]
     dodwj.clear()
@@ -1438,7 +1429,6 @@ def refreshjoblist(joblist, doBylist, dodwj, daydict):
                        item[1], item[3]))
 
         doBylist.append(arrow.get(item[2]).date())
-
 
     i = 1
     for item in joblist:
@@ -1481,7 +1471,6 @@ if __name__ == "__main__":
     joblist = []
     doBylist = []
     refreshjoblist(joblist, doBylist, dodwj, daydict)
-
 
     # db.additem('wt', 'newdbitem', '3600')
 
