@@ -272,16 +272,7 @@ class CalGame(GridLayout):  # main class
     cl.append(rgb256to1(161, 194, 111))
     cl.append(rgb256to1(158, 223, 154))
     cl.append(rgb256to1(152, 230, 125))
-    cl.append(rgb256to1(176, 205, 159))
-    cl.append(rgb256to1(224, 180, 116))
-    cl.append(rgb256to1(195, 203, 89))
-    cl.append(rgb256to1(104, 242, 197))
-    cl.append(rgb256to1(217, 222, 144))
-    cl.append(rgb256to1(109, 221, 221))
-    cl.append(rgb256to1(222, 244, 122))
-    cl.append(rgb256to1(231, 224, 97))
-    cl.append(rgb256to1(234, 194, 81))
-    seed = 20
+    seed = 2
     dater = ObjectProperty()
 
     ig0 = InstructionGroup()  # white background
@@ -527,18 +518,21 @@ class SubmitBtn(Button):
         name = self.parent.children[2].children[2].text
         timereq = self.calctimereq(self.parent.children[2].children[0].text)
         datestr = self.datevar.format('YYYY/MM/DD HH:mm:ss')
+        group = self.parent.children[2].children[1].text
+        print(group)
+        group = 4
 
-        q = 'INSERT INTO wt VALUES(\''
+        q = 'INSERT INTO wt2 VALUES(\''
         q = q + name
         q = q + '\',\'' + timereq + '\','
         q = q + ' STR_TO_DATE(\''
-        q = q + datestr + '\', \'%Y/%m/%d %T\'), NULL);'
+        q = q + datestr + '\', \'%Y/%m/%d %T\'), ' + str(group) + ', NULL);'
 #         print('QUERY: ')
 #         print(q)
         db.query(q)
         db.cnx.commit()
 
-        refreshjoblist(joblist, doBylist, dodwj, daydict)
+        refreshjoblist(joblist, doBylist, dodwj, daydict, grouplist)
 
         sm = self.parent.parent.parent
         sm.current = '1'
@@ -561,7 +555,7 @@ class DelBtn(Button):
     def on_release(self):
 
         # deletes from db
-        deldbitem(self, self.parent.parent.parent.jb)
+        # deldbitem(self, self.parent.parent.parent.jb)
 
         # deletes from joblist (prevent refresh??)
         for job in joblist:
@@ -599,9 +593,9 @@ class AddBtn(Button):
 
         timereq = 86400  # 1 day, in seconds
         timereqw.text = str(timereq)
-        typew.text = 'modded typew'
+        typew.text = 'Enter group'
         dobyw.text = 'Enter info for new job on ' + str(nw.date)
-        namew.text = 'modded namew2'
+        namew.text = 'Enter job name'
 
 
 class NWLabel(Label):
@@ -710,7 +704,16 @@ class NW2(StackLayout):
             self.lbltext += 'Approximately ' + trs + ' to complete' + '\n'
             self.lbltext += 'Latest date to start is ' + str(mswdd)
             self.lbltext += ' at ' + str(mswdt) + ' ('
-            self.lbltext += mswd.humanize() + ')[/color]\n\n'
+            self.lbltext += mswd.humanize() + ')\n\n'
+
+        if (job.group != None):
+            self.lbltext += 'Group: '
+            self.lbltext += str(grouplist[job.group].name) + '\n\n'
+            self.lbltext += 'People:\n'
+            for person in grouplist[job.group].members:
+                self.lbltext += person + '\n'
+
+        self.lbltext += '[/color]\n\n'
 
 
 nw = NW(size=(Window.width*.85, Window.height*.85))
@@ -1213,7 +1216,7 @@ class Database:
 class Job:
     def __init__(self, name,
                  arwdt,
-                 timereq, job_id):
+                 timereq, job_id, group):
         self.name = name
         self.timeReq = timereq  # timeReq is time required in SECONDS
 
@@ -1230,6 +1233,8 @@ class Job:
         self.s = 1
 
         self.key = job_id
+        
+        self.group = group
 
     # time left (calculated from current time)
     def timeLeft(self, date):
@@ -1273,9 +1278,16 @@ class Job:
 #####################################
 
 
+class Group:
+    def __init__(self, name, group_id, members):
+        self.name = name
+        self.group_id = group_id
+        self.members = members
+        
+
 def deldbitem(self, job):
     # CONTINUE
-    q = 'DELETE FROM wt WHERE job_id = "' + str(job.key) + '";'
+    q = 'DELETE FROM wt2 WHERE job_id = "' + str(job.key) + '";'
     db.query(q)
     db.cnx.commit()
     # unneeded because we remove the job directly from the joblist
@@ -1407,11 +1419,57 @@ def ntf2(self, arwin):  # new test function
     spawnnw(self, jobitems, arwin)
 
 
-def refreshjoblist(joblist, doBylist, dodwj, daydict):
+def getGroupList():
+
+    q = """
+    SELECT * from groups;
+    """
+    dbdata = db.query(q)
+
+    members = []
+
+    for item in dbdata:
+        members = []
+        # dbdata has group names and ids
+        # item[0] is group_id
+        # item[1] is groupname
+
+        # get member list
+        q = """
+        SELECT CONCAT(people.firstname, " ", people.lastname) as Name,
+        pg.group_group_id,
+        groups.groupname
+        FROM people, pg, groups
+        WHERE people.person_id = pg.people_person_id
+        AND pg.group_group_id = groups.group_id
+        AND groups.group_id = """
+
+        # filter by group_id for each group in groups table
+        q += str(item[0])
+
+        pgl = db.query(q) # people-group list
+        
+        for result in pgl:
+            print(result)
+        print('---------------')
+
+        for result in pgl:
+            members.append(result[0])
+
+    
+        grouplist[item[0]] = Group(item[1], item[0], members)
+
+    for group in grouplist:
+        print('Group: ' + str(grouplist[group].name))
+        for person in grouplist[group].members:
+            print(person)
+        print('--------------------------------')
+
+def refreshjoblist(joblist, doBylist, dodwj, daydict, grouplist):
     printdebug = False
     # pull data from sql db
     q = """
-    SELECT * from wt;
+    SELECT * from wt2;
     """
     dbdata = db.query(q)
 
@@ -1425,8 +1483,9 @@ def refreshjoblist(joblist, doBylist, dodwj, daydict):
     for item in dbdata:
         if(printdebug):
             print(item)
+
         joblist.append(Job(item[0], arrow.get(item[2], tz.tzlocal()),
-                       item[1], item[3]))
+                       item[1], item[4], item[3]))
 
         doBylist.append(arrow.get(item[2]).date())
 
@@ -1470,7 +1529,12 @@ if __name__ == "__main__":
     daydict = defaultdict(dict)
     joblist = []
     doBylist = []
-    refreshjoblist(joblist, doBylist, dodwj, daydict)
+
+    # dict of groups
+    grouplist = defaultdict(dict)
+    getGroupList()
+
+    refreshjoblist(joblist, doBylist, dodwj, daydict, grouplist)
 
     # db.additem('wt', 'newdbitem', '3600')
 
