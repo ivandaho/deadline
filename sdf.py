@@ -37,17 +37,18 @@ from kivy.lang import Builder
 from kivy.uix.label import Label
 # import random
 
+from kivy.uix.dropdown import DropDown
+from kivy.uix.spinner import Spinner
+
 Builder.load_string("""
 <SecondScreen>:
     BoxLayout:
         orientation: 'vertical'
         InputFields:
-
             name: 'NAME'
             doby: 'DOBY'
             type: 'TYPE'
             timereq: 'TIMEREQ'
-
             pos:self.parent.pos
             size:self.parent.size
             orientation: 'vertical'
@@ -56,21 +57,26 @@ Builder.load_string("""
                 text: 'choose date first'
             TextInput:
                 text: str(self.parent.strname)
-                size:self.size
+                size: self.size
+                on_text: self.parent.testfunc(self)
             TextInput:
-                text: str(self.parent.strtype)
-                size:self.size
+                text: str(self.parent.strtime)
+                size: self.size
+                on_text: self.parent.testfunc(self)
             TextInput:
                 text: str(self.parent.strtimereq)
-                size:self.size
+                size: self.size
+                on_text: self.parent.testfunc(self)
 
         SubmitBtn:
             size_hint: (1, .25)
             text:'Submit Job'
+            background_color:(0,1,0,1)
         BackBtn:
             size_hint: (1, .25)
-            text: 'back to menu'
-            # on_press: root.manager.current = '1'
+            text: 'Back to Calendar'
+            background_color:(1,0,0,1)
+
 <NW>:
     canvas:
         Color:
@@ -203,10 +209,24 @@ Builder.load_string("""
             Color:
                 rgba:1,1,0,1
 
+<GroupDD>:
+    Button:
+        text: 'my first item'
+        size_hint_y: None
+        height: 44
+        on_release: root.select('item1')
+    Button:
+        text: 'my second item'
+        size_hint_y: None
+        height: 44
+        on_release: root.select('item2')
 """)
 
 delaymode = False
 
+
+class GroupDD(DropDown):
+    pass
 
 class NL(Label):
     pass
@@ -272,7 +292,7 @@ class CalGame(GridLayout):  # main class
     cl.append(rgb256to1(161, 194, 111))
     cl.append(rgb256to1(158, 223, 154))
     cl.append(rgb256to1(152, 230, 125))
-    seed = 2
+    seed = 1
     dater = ObjectProperty()
 
     ig0 = InstructionGroup()  # white background
@@ -441,12 +461,17 @@ class CalGame(GridLayout):  # main class
 
 
 class InputFields(BoxLayout):
+
+    def testfunc(self, obj):
+        print(obj)
+        obj.background_color = (1,1,1,1)
+
     this = StringProperty('unmodded')
 
-    strname = 'enter name'
-    strdoby = 'enter doby'
-    strtype = 'enter type'
-    strtimereq = 'enter timereq in seconds'
+    strname = 'Enter name'
+    strtime = 'Enter time'
+    strdoby = 'Enter doby'
+    strtimereq = 'Enter time required'
 
 
 class BackBtn(Button):
@@ -454,6 +479,7 @@ class BackBtn(Button):
         sm = self.parent.parent.parent
         sm.current = '1'
 
+        sm.children[0].children[0].remove_widget(nw)
 
 class SubmitBtn(Button):
 
@@ -515,34 +541,66 @@ class SubmitBtn(Button):
 
     def on_release(self):
 
-        name = self.parent.children[2].children[2].text
-        timereq = self.calctimereq(self.parent.children[2].children[0].text)
-        datestr = self.datevar.format('YYYY/MM/DD HH:mm:ss')
-        group = self.parent.children[2].children[1].text
-        print(group)
-        group = 4
+        nameok = False
+        timereqok = False
+        groupok = False
 
-        q = 'INSERT INTO wt2 VALUES(\''
-        q = q + name
-        q = q + '\',\'' + timereq + '\','
-        q = q + ' STR_TO_DATE(\''
-        q = q + datestr + '\', \'%Y/%m/%d %T\'), ' + str(group) + ', NULL);'
-#         print('QUERY: ')
-#         print(q)
-        db.query(q)
-        db.cnx.commit()
+        groupw = self.parent.children[2].children[0]
+        timereqw = self.parent.children[2].children[1]
+        timew = self.parent.children[2].children[2]
+        namew = self.parent.children[2].children[3]
+        if (namew.text == 'Enter job name'):
+            namew.background_color = (0.8,0,0,1)
+        else:
+            name = namew.text
+            nameok = True
 
-        refreshjoblist(joblist, doBylist, dodwj, daydict, grouplist)
+        if (timereqw.text == 'Enter time required'):
+            timereqw.background_color = (0.8,0,0,1)
+        else:
+            # TODO: catch parse error
+            timereq = self.calctimereq(timereqw.text)
+            timereqok = True
 
-        sm = self.parent.parent.parent
-        sm.current = '1'
+        datestr = self.datevar.format('YYYY/MM/DD')
+        timestr = timew.text
 
-        refwid = sm.children[0].children[0]
-        refwid.remove_widget(nw)
+        datetimestr = datestr + ' ' + timestr + ':00'
+        
+        # puts group names and their ids into arrays
+        # so we can match the text in the group Spinner widget
+        gnames = []
+        gids = []
+        for value in grouplist.values():
+            gnames.append(value.name)
+            gids.append(value.group_id)
+        if (groupw.text == 'Choose Group'):
+            groupw.background_color = (0.8,0,0,1)
 
-        dater = refwid.children[0].children[2].dater
-        refwid.children[0].children[2].getspace(dater.year, dater.month)
-        refwid.children[0].children[2].makemarks(dater.year, dater.month)
+        else:
+            group = gids[gnames.index(groupw.text)]
+            groupok = True
+
+        if nameok and timereqok and groupok:
+
+            q = 'INSERT INTO wt2 VALUES(\''
+            q = q + name
+            q = q + '\',\'' + timereq + '\','
+            q = q + ' STR_TO_DATE(\''
+            q = q + datetimestr + '\', \'%Y/%m/%d %T\'), ' + str(group) + ', NULL);'
+            db.query(q)
+            db.cnx.commit()
+
+            refreshjoblist(joblist, doBylist, dodwj, daydict, grouplist)
+
+            sm = self.parent.parent.parent
+            sm.current = '1'
+
+            refwid = sm.children[0].children[0]
+            refwid.remove_widget(nw)
+
+            dater = refwid.children[0].children[2].dater
+            refwid.children[0].children[2].getspace(dater.year, dater.month)
 
 
 class ModBtn(Button):
@@ -572,17 +630,45 @@ class DelBtn(Button):
         # makemarks is always happening, but need getspace to refresh
         cm.getspace(dater.year, dater.month)
 
+def show_selected_value(spinner, text):
+    # print('The spinner ', spinner, 'has text ', text)
+    spinner.background_color = (1, 1, 1, 1)
 
 class AddBtn(Button):
+
     def on_release(self):
-        InputFields.this = 'WAFKJF'
+
         sm = self.parent.parent.parent.parent.parent
         sm.current = '2'
         refwid = sm.children[0].children[0].children[2]
-        timereqw = refwid.children[0]
-        typew = refwid.children[1]
-        namew = refwid.children[2]
-        dobyw = refwid.children[3]
+
+        for child in refwid.children:
+            if (isinstance(child,Spinner)):
+                refwid.remove_widget(child)
+
+        # gdd is one element in the drop down list
+        gdd = GroupDD()
+        v = []
+        i = []
+        for item in grouplist:
+            v.append(grouplist[item].name)
+            i.append(grouplist[item].group_id)
+
+        spn = Spinner(text='Home', values=(v), background_color=(0, 0, 1, 1),
+                size_hint=(None,None),
+                size=(Window.width, 44))
+        spn.bind(text=show_selected_value)
+
+        mainbutton = Button(text='hello', size_hint=(None,None))
+        mainbutton.bind(on_release=gdd.open)
+        gdd.bind(on_select=lambda instance, x:setattr(mainbutton, 'text', x))
+        refwid.add_widget(spn)
+
+        groupspinner = refwid.children[0]
+        timereqw = refwid.children[1]
+        timew = refwid.children[2]
+        namew = refwid.children[3]
+        dobyw = refwid.children[4]
 
         # 0123456789
         # 2016-03-31
@@ -591,11 +677,11 @@ class AddBtn(Button):
         daystr = int(str(nw.date)[8:10])
         SubmitBtn.datevar = arrow.get(yearstr, monthstr, daystr)
 
-        timereq = 86400  # 1 day, in seconds
-        timereqw.text = str(timereq)
-        typew.text = 'Enter group'
-        dobyw.text = 'Enter info for new job on ' + str(nw.date)
+        groupspinner.text = 'Choose Group'
+        timew.text = 'Enter job time in HH:MM format'
+        timereqw.text = 'Enter time required'
         namew.text = 'Enter job name'
+        dobyw.text = 'Enter info for new job on ' + str(nw.date)
 
 
 class NWLabel(Label):
@@ -827,7 +913,9 @@ class DayBtn(Button):  # day button class
     def drawnewer(self, job, insgrp, insgrpalt, clean):
         ri = self.parent.seed
         self.parent.seed = self.parent.seed + 1
-        if (self.parent.seed == len(self.parent.cl)-1):
+
+        # if (self.parent.seed == len(self.parent.cl)-1):
+        if (self.parent.seed == 21):
             self.parent.seed = 0
 
         if(checkl()):
@@ -1286,7 +1374,6 @@ class Group:
         
 
 def deldbitem(self, job):
-    # CONTINUE
     q = 'DELETE FROM wt2 WHERE job_id = "' + str(job.key) + '";'
     db.query(q)
     db.cnx.commit()
