@@ -446,16 +446,22 @@ class CalGame(GridLayout):  # main class
 
                 daydict[dtc.date()] = jobstodo
 
-            x = 1
+            x = 1  # var to set line number
             tj = 0
+            l = []
             for item in daydict[dtc.date()]:
+
                 tj = tj + 1
-                if (item.line == 0):
+                # TODO: write condition for when there is no timeReq
+                if (item.line < 1):
                     item.line = x
                 # TODO: write something better for line > 3
                 x = x + 1
                 if (x == 4):
                     x = 1
+                l.append(item.line)
+                if (l.count(item.line) > 1):
+                    item.line = item.line + 1
 
             currday = currday + 1
 
@@ -463,7 +469,6 @@ class CalGame(GridLayout):  # main class
 class InputFields(BoxLayout):
 
     def testfunc(self, obj):
-        print(obj)
         obj.background_color = (1,1,1,1)
 
     this = StringProperty('unmodded')
@@ -484,6 +489,8 @@ class BackBtn(Button):
 class SubmitBtn(Button):
 
     datevar = arrow.get()
+    idvar = 0
+    edit = False
 
     def calctimereq(self, source):
         # set defaults
@@ -565,8 +572,11 @@ class SubmitBtn(Button):
         datestr = self.datevar.format('YYYY/MM/DD')
         timestr = timew.text
 
-        datetimestr = datestr + ' ' + timestr + ':00'
-        
+        if (self.edit):
+            datetimestr = timestr
+        else:
+            datetimestr = datestr + ' ' + timestr + ':00'
+
         # puts group names and their ids into arrays
         # so we can match the text in the group Spinner widget
         gnames = []
@@ -582,13 +592,31 @@ class SubmitBtn(Button):
             groupok = True
 
         if nameok and timereqok and groupok:
+            if (self.edit):
+                q = 'UPDATE wt2 set name=\'' + str(name) 
+                q += '\' ' + 'WHERE job_id=' + str(self.idvar) + ';'
+                db.query(q)
 
-            q = 'INSERT INTO wt2 VALUES(\''
-            q = q + name
-            q = q + '\',\'' + timereq + '\','
-            q = q + ' STR_TO_DATE(\''
-            q = q + datetimestr + '\', \'%Y/%m/%d %T\'), ' + str(group) + ', NULL);'
-            db.query(q)
+                q = 'UPDATE wt2 set timereq=' + str(timereq) 
+                q += ' ' + 'WHERE job_id=' + str(self.idvar) + ';'
+                db.query(q)
+
+                q = 'UPDATE wt2 set doby='
+                q += 'STR_TO_DATE(\'' + datetimestr + '\', \'%Y/%m/%d %T\')'
+                q += ' ' + 'WHERE job_id=' + str(self.idvar) + ';'
+                db.query(q)
+
+                q = 'UPDATE wt2 set group_id=' + str(group)
+                q += ' ' + 'WHERE job_id=' + str(self.idvar) + ';'
+                db.query(q)
+            else:
+                q = 'INSERT INTO wt2 VALUES(\''
+                q = q + name
+                q = q + '\',\'' + timereq + '\','
+                q = q + ' STR_TO_DATE(\''
+                q = q + datetimestr + '\', \'%Y/%m/%d %T\'), ' + str(group) + ', NULL);'
+                db.query(q)
+
             db.cnx.commit()
 
             refreshjoblist(joblist, doBylist, dodwj, daydict, grouplist)
@@ -596,16 +624,63 @@ class SubmitBtn(Button):
             sm = self.parent.parent.parent
             sm.current = '1'
 
-            refwid = sm.children[0].children[0]
-            refwid.remove_widget(nw)
-
-            dater = refwid.children[0].children[2].dater
-            refwid.children[0].children[2].getspace(dater.year, dater.month)
+            refwid = sm.children[0].children[0]  # floatlayout parent of nw and nw2
+            refwid.remove_widget(nw2)
+            cm = refwid.children[0].children[2]
+            dater = cm.dater
+            cm.getspace(dater.year, dater.month)
 
 
 class ModBtn(Button):
+
     def on_release(self):
-        pass
+        sm = self.parent.parent.parent.parent.parent.parent
+        sm.current = '2'
+        # refwid is InputFields
+        refwid = sm.children[0].children[0].children[2]
+
+
+        for child in refwid.children:
+            if (isinstance(child,Spinner)):
+                refwid.remove_widget(child)
+
+        # gdd is one element in the drop down list
+        gdd = GroupDD()
+        v = []
+        i = []
+        for item in grouplist:
+            v.append(grouplist[item].name)
+            i.append(grouplist[item].group_id)
+
+        spn = Spinner(text='Home', values=(v), background_color=(0, 0, 1, 1),
+                size_hint=(None,None),
+                size=(Window.width, 44))
+        spn.bind(text=show_selected_value)
+
+        mainbutton = Button(text='hello', size_hint=(None,None))
+        mainbutton.bind(on_release=gdd.open)
+        gdd.bind(on_select=lambda instance, x:setattr(mainbutton, 'text', x))
+        refwid.add_widget(spn)
+
+        groupspinner = refwid.children[0]
+        timereqw = refwid.children[1]
+        timew = refwid.children[2]
+        namew = refwid.children[3]
+        dobyw = refwid.children[4]
+
+        # 0123456789
+        # 2016-03-31
+        refjob = self.parent.parent.parent.jb
+        SubmitBtn.datevar = refjob.doBy
+        SubmitBtn.idvar = refjob.job_id
+        SubmitBtn.edit = True
+ 
+        groupspinner.text = grouplist[refjob.group].name
+        timew.text = refjob.doBy.format('YYYY/MM/DD HH:mm')
+        trs = str(refjob.timeReq/86400.) + ' days'  # time req simplified
+        timereqw.text = 'Time required: approximately ' + str(trs)
+        namew.text = refjob.name
+        dobyw.text = 'Enter new info for ' + str(refjob.name)
 
 
 class DelBtn(Button):
@@ -613,7 +688,7 @@ class DelBtn(Button):
     def on_release(self):
 
         # deletes from db
-        # deldbitem(self, self.parent.parent.parent.jb)
+        deldbitem(self, self.parent.parent.parent.jb)
 
         # deletes from joblist (prevent refresh??)
         for job in joblist:
@@ -637,6 +712,7 @@ def show_selected_value(spinner, text):
 class AddBtn(Button):
 
     def on_release(self):
+        SubmitBtn.edit = False
 
         sm = self.parent.parent.parent.parent.parent
         sm.current = '2'
@@ -783,7 +859,9 @@ class NW2(StackLayout):
         self.lbltext += str(job.name) + '[/size][/b]\n'
         if (job.timeReq > 0):
             self.lbltext += 'Due ' + str(job.doBy.format('D MMMM YYYY'))
+            self.lbltext += ' at ' + str(job.doBy.format('h:mm A'))
         else:
+            self.lbltext += 'On ' + str(job.doBy.format('D MMMM YYYY'))
             self.lbltext += ' at ' + str(job.doBy.format('h:mm A'))
         self.lbltext += ' (' + job.doBy.humanize() + ')\n\n'
         if (job.timeReq > 0):
@@ -1451,7 +1529,7 @@ def icstosql():
     # adds events after 1/1/2016 from ics file, if exists, to sql db
     # i use my personal calendar to populate so it's not uploaded here
     if (os.path.isfile('./cal.ics')):
-        print('file found')
+        print('file found, importing ics items')
         with open('./cal.ics') as f:
             cal = Calendar(imports=f)
 
@@ -1463,7 +1541,7 @@ def icstosql():
 
 def inserticsevent(event):
     datestr = event.begin.format('YYYY/MM/DD HH:mm:ss')
-    print(datestr)
+    # print(datestr)
     q = 'INSERT INTO wt VALUES(\''
     q = q + str(event.name)
     q = q + '\',\'0\','
@@ -1537,20 +1615,11 @@ def getGroupList():
         pgl = db.query(q) # people-group list
         
         for result in pgl:
-            print(result)
-        print('---------------')
-
-        for result in pgl:
             members.append(result[0])
 
     
         grouplist[item[0]] = Group(item[1], item[0], members)
 
-    for group in grouplist:
-        print('Group: ' + str(grouplist[group].name))
-        for person in grouplist[group].members:
-            print(person)
-        print('--------------------------------')
 
 def refreshjoblist(joblist, doBylist, dodwj, daydict, grouplist):
     printdebug = False
